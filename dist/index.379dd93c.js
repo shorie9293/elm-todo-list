@@ -140,7 +140,7 @@
       this[globalName] = mainExports;
     }
   }
-})({"lBB98":[function(require,module,exports) {
+})({"716PY":[function(require,module,exports) {
 var HMR_HOST = null;
 var HMR_PORT = null;
 var HMR_SECURE = false;
@@ -7502,21 +7502,59 @@ type alias Process =
         }
     };
     var $elm$browser$Browser$element = _Browser_element;
+    var $author$project$TodoMain$initModel = {
+        attack: 2,
+        enemyHp: 10,
+        exp: 0,
+        level: 1,
+        point: 0
+    };
     var $author$project$TodoMain$init = function(_v0) {
-        return _Utils_Tuple2({
-            todo: 'first todo!!'
-        }, $elm$core$Platform$Cmd$none);
+        return _Utils_Tuple2($author$project$TodoMain$initModel, $elm$core$Platform$Cmd$none);
     };
     var $elm$core$Platform$Sub$batch = _Platform_batch;
     var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+    var $author$project$TodoMain$reduceEnemyHp = function(model) {
+        return model.enemyHp - model.attack;
+    };
     var $author$project$TodoMain$update = F2(function(msg, model) {
-        return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+        return _Utils_Tuple2(_Utils_update(model, {
+            enemyHp: $author$project$TodoMain$reduceEnemyHp(model)
+        }), $elm$core$Platform$Cmd$none);
     });
+    var $author$project$TodoMain$AttackToEnemy = {
+        $: 'AttackToEnemy'
+    };
+    var $author$project$TodoMain$viewActor = function(model) {
+        return A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+            A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+                $elm$html$Html$text('LV: ' + $elm$core$String$fromInt(model.level))
+            ])),
+            A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+                $elm$html$Html$text('EXP: ' + $elm$core$String$fromInt(model.exp))
+            ])),
+            A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+                $elm$html$Html$text('Point: ' + $elm$core$String$fromInt(model.point))
+            ])),
+            A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+                $elm$html$Html$text('Attack: ' + $elm$core$String$fromInt(model.attack))
+            ])),
+            A2($elm$html$Html$button, _List_fromArray([
+                $elm$html$Html$Events$onClick($author$project$TodoMain$AttackToEnemy)
+            ]), _List_fromArray([
+                $elm$html$Html$text('Attack')
+            ]))
+        ]));
+    };
+    var $author$project$TodoMain$viewEnemy = function(model) {
+        return A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+            $elm$html$Html$text('Enemy HP: ' + $elm$core$String$fromInt(model.enemyHp))
+        ]));
+    };
     var $author$project$TodoMain$view = function(model) {
-        return A2($elm$html$Html$div, _List_fromArray([
-            $elm$html$Html$Attributes$class('todo-text')
-        ]), _List_fromArray([
-            $elm$html$Html$text(model.todo)
+        return A2($elm$html$Html$div, _List_Nil, _List_fromArray([
+            $author$project$TodoMain$viewEnemy(model),
+            $author$project$TodoMain$viewActor(model)
         ]));
     };
     var $author$project$TodoMain$main = $elm$browser$Browser$element({
@@ -7541,7 +7579,7 @@ type alias Process =
                         "TodoMain.Msg": {
                             "args": [],
                             "tags": {
-                                "NoOp": []
+                                "AttackToEnemy": []
                             }
                         }
                     }
@@ -7958,6 +7996,6 @@ type alias Process =
 //////////////////// HMR END ////////////////////
 })(this);
 
-},{}]},["lBB98","hD4hw"], "hD4hw", "parcelRequire94c2")
+},{}]},["716PY","hD4hw"], "hD4hw", "parcelRequire94c2")
 
 //# sourceMappingURL=index.379dd93c.js.map

@@ -3,5 +3,8 @@
     "@parcel/transformer-elm": "^2.0.1",
     "elm": "^0.19.1-5",
     "parcel": "^2.0.1"
+  },
+  "dependencies": {
+    "elm-test": "^0.19.1-revision7"
   }
 }
