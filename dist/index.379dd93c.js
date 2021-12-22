@@ -7503,10 +7503,12 @@ type alias Process =
     };
     var $elm$browser$Browser$element = _Browser_element;
     var $author$project$TodoMain$initModel = {
-        attack: 2,
+        attack: 1,
         enemyHp: 10,
         exp: 0,
+        lastEnemyHp: 10,
         level: 1,
+        levelFlag: false,
         point: 0
     };
     var $author$project$TodoMain$init = function(_v0) {
@@ -7514,13 +7516,34 @@ type alias Process =
     };
     var $elm$core$Platform$Sub$batch = _Platform_batch;
     var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+    var $author$project$TodoMain$encountNextEnemy = function(model) {
+        return model.enemyHp <= 0 ? _Utils_update(model, {
+            enemyHp: model.lastEnemyHp + 5,
+            exp: model.exp + 10,
+            lastEnemyHp: model.lastEnemyHp + 5,
+            levelFlag: true
+        }) : model;
+    };
+    var $elm$core$Basics$modBy = _Basics_modBy;
+    var $author$project$TodoMain$judgeLevelUp = function(model) {
+        return model.levelFlag && !A2($elm$core$Basics$modBy, 30, model.exp) ? _Utils_update(model, {
+            attack: model.attack + 5,
+            level: model.level + 1,
+            levelFlag: false
+        }) : _Utils_update(model, {
+            levelFlag: false
+        });
+    };
     var $author$project$TodoMain$reduceEnemyHp = function(model) {
-        return model.enemyHp - model.attack;
+        return _Utils_update(model, {
+            enemyHp: model.enemyHp - model.attack
+        });
+    };
+    var $author$project$TodoMain$attackToEnemy = function(model) {
+        return $author$project$TodoMain$judgeLevelUp($author$project$TodoMain$encountNextEnemy($author$project$TodoMain$reduceEnemyHp(model)));
     };
     var $author$project$TodoMain$update = F2(function(msg, model) {
-        return _Utils_Tuple2(_Utils_update(model, {
-            enemyHp: $author$project$TodoMain$reduceEnemyHp(model)
-        }), $elm$core$Platform$Cmd$none);
+        return _Utils_Tuple2($author$project$TodoMain$attackToEnemy(model), $elm$core$Platform$Cmd$none);
     });
     var $author$project$TodoMain$AttackToEnemy = {
         $: 'AttackToEnemy'

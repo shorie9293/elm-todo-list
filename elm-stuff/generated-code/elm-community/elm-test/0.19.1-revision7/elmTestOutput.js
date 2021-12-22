@@ -2597,6 +2597,8 @@ var $author$project$Test$Reporter$Reporter$ConsoleReport = function (a) {
 	return {$: 'ConsoleReport', a: a};
 };
 var $author$project$Console$Text$UseColor = {$: 'UseColor'};
+var $elm$core$Basics$False = {$: 'False'};
+var $elm$core$Basics$True = {$: 'True'};
 var $elm$core$Basics$apL = F2(
 	function (f, x) {
 		return f(x);
@@ -2873,8 +2875,6 @@ var $elm$core$Set$insert = F2(
 		return $elm$core$Set$Set_elm_builtin(
 			A3($elm$core$Dict$insert, key, _Utils_Tuple0, dict));
 	});
-var $elm$core$Basics$False = {$: 'False'};
-var $elm$core$Basics$True = {$: 'True'};
 var $elm$core$Maybe$Just = function (a) {
 	return {$: 'Just', a: a};
 };
@@ -3040,6 +3040,12 @@ var $elm_explorations$test$Test$describe = F2(
 			}
 		}
 	});
+var $elm$core$Basics$le = _Utils_le;
+var $author$project$TodoMain$encountNextEnemy = function (model) {
+	return (model.enemyHp <= 0) ? _Utils_update(
+		model,
+		{enemyHp: model.lastEnemyHp + 5, exp: model.exp + 10, lastEnemyHp: model.lastEnemyHp + 5, levelFlag: true}) : model;
+};
 var $elm_explorations$test$Test$Runner$Failure$Equality = F2(
 	function (a, b) {
 		return {$: 'Equality', a: a, b: b};
@@ -3090,10 +3096,19 @@ var $elm_explorations$test$Expect$equateWith = F4(
 		return usesFloats ? $elm_explorations$test$Expect$fail(floatError) : A5($elm_explorations$test$Expect$testWith, $elm_explorations$test$Test$Runner$Failure$Equality, reason, comparison, b, a);
 	});
 var $elm_explorations$test$Expect$equal = A2($elm_explorations$test$Expect$equateWith, 'Expect.equal', $elm$core$Basics$eq);
-var $author$project$TodoMain$initModel = {attack: 2, enemyHp: 10, exp: 0, level: 1, point: 0};
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $author$project$TodoMain$judgeLevelUp = function (model) {
+	return (model.levelFlag && (!A2($elm$core$Basics$modBy, 30, model.exp))) ? _Utils_update(
+		model,
+		{attack: model.attack + 5, level: model.level + 1, levelFlag: false}) : _Utils_update(
+		model,
+		{levelFlag: false});
+};
 var $elm$core$Basics$sub = _Basics_sub;
 var $author$project$TodoMain$reduceEnemyHp = function (model) {
-	return model.enemyHp - model.attack;
+	return _Utils_update(
+		model,
+		{enemyHp: model.enemyHp - model.attack});
 };
 var $elm_explorations$test$Test$Internal$blankDescriptionFailure = $elm_explorations$test$Test$Internal$failNow(
 	{
@@ -3125,8 +3140,29 @@ var $author$project$StatusTests$attackToEnemyTests = A2(
 			function (_v0) {
 				return A2(
 					$elm_explorations$test$Expect$equal,
-					$author$project$TodoMain$initModel.enemyHp - $author$project$TodoMain$initModel.attack,
-					$author$project$TodoMain$reduceEnemyHp($author$project$TodoMain$initModel));
+					{attack: 1, enemyHp: 9, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0},
+					$author$project$TodoMain$reduceEnemyHp(
+						{attack: 1, enemyHp: 10, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0}));
+			}),
+			A2(
+			$elm_explorations$test$Test$test,
+			'敵のHPが0以下の時、前回のHPから5増やす。',
+			function (_v1) {
+				return A2(
+					$elm_explorations$test$Expect$equal,
+					{attack: 1, enemyHp: 15, exp: 10, lastEnemyHp: 15, level: 1, levelFlag: true, point: 0},
+					$author$project$TodoMain$encountNextEnemy(
+						{attack: 1, enemyHp: 0, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0}));
+			}),
+			A2(
+			$elm_explorations$test$Test$test,
+			'経験値が30のときLevelを1, attackを5あげる',
+			function (_v2) {
+				return A2(
+					$elm_explorations$test$Expect$equal,
+					{attack: 6, enemyHp: 0, exp: 30, lastEnemyHp: 10, level: 2, levelFlag: false, point: 0},
+					$author$project$TodoMain$judgeLevelUp(
+						{attack: 1, enemyHp: 0, exp: 30, lastEnemyHp: 10, level: 1, levelFlag: true, point: 0}));
 			})
 		]));
 var $elm$core$Debug$todo = _Debug_todo;
@@ -3186,7 +3222,6 @@ var $elm$core$List$length = function (xs) {
 		xs);
 };
 var $elm$core$List$map2 = _List_map2;
-var $elm$core$Basics$le = _Utils_le;
 var $elm$core$List$rangeHelp = F3(
 	function (lo, hi, list) {
 		rangeHelp:
@@ -6513,7 +6548,7 @@ var $author$project$Test$Generated$Main$main = A2(
 		processes: 6,
 		report: $author$project$Test$Reporter$Reporter$ConsoleReport($author$project$Console$Text$UseColor),
 		runs: 100,
-		seed: 229255513044472
+		seed: 252346436630618
 	},
 	_List_fromArray(
 		[
@@ -6527,7 +6562,7 @@ var $author$project$Test$Generated$Main$main = A2(
 _Platform_export({'Test':{'Generated':{'Main':{'init':$author$project$Test$Generated$Main$main($elm$json$Json$Decode$int)(0)}}}});}(this));
 return this.Elm;
 })({});
-var pipeFilename = "\\\\.\\pipe\\elm_test-25216-1";
+var pipeFilename = "\\\\.\\pipe\\elm_test-12936-1";
 var net = require('net'),
   client = net.createConnection(pipeFilename);
 
