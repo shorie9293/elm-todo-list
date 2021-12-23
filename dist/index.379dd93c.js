@@ -461,7 +461,8 @@ function hmrAcceptRun(bundle, id) {
 },{}],"hD4hw":[function(require,module,exports) {
 var _todoMainElm = require("./TodoMain.elm");
 _todoMainElm.Elm.TodoMain.init({
-    node: document.getElementById("main")
+    node: document.getElementById("main"),
+    flags: 15
 });
 
 },{"./TodoMain.elm":"hBEfB"}],"hBEfB":[function(require,module,exports) {
@@ -7511,8 +7512,10 @@ type alias Process =
         levelFlag: false,
         point: 0
     };
-    var $author$project$TodoMain$init = function(_v0) {
-        return _Utils_Tuple2($author$project$TodoMain$initModel, $elm$core$Platform$Cmd$none);
+    var $author$project$TodoMain$init = function(flag) {
+        return _Utils_Tuple2(_Utils_update($author$project$TodoMain$initModel, {
+            enemyHp: flag
+        }), $elm$core$Platform$Cmd$none);
     };
     var $elm$core$Platform$Sub$batch = _Platform_batch;
     var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
@@ -7590,7 +7593,7 @@ type alias Process =
     });
     _Platform_export({
         'TodoMain': {
-            'init': $author$project$TodoMain$main($elm$json$Json$Decode$succeed(_Utils_Tuple0))({
+            'init': $author$project$TodoMain$main($elm$json$Json$Decode$int)({
                 "versions": {
                     "elm": "0.19.1"
                 },

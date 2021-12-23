@@ -1,4 +1,6 @@
-module TodoMain exposing ( initModel
+module TodoMain exposing ( main
+                          , init
+                          , initModel
                           , reduceEnemyHp
                           , encountNextEnemy
                           , judgeLevelUp )
@@ -8,17 +10,17 @@ import Html exposing ( Html, div, text )
 import Html.Attributes exposing ( class )
 import Html exposing (button)
 import Html.Events exposing (onClick)
--- import Basics exposing (modBy)
-
+-- import Json.Decode exposing (Decoder, int, string)
 
 -- MAIN
-main : Program () Model Msg
+main : Program Int Model Msg
 main = Browser.element
   { init = init
   , view = view
   , update = update
   , subscriptions = \_ -> Sub.none
   }
+
 
 -- MODEL
 type alias Model =
@@ -29,6 +31,7 @@ type alias Model =
   , levelFlag : Bool
   , point : Int
   , attack : Int}
+
 
 initModel : Model
 initModel =
@@ -42,9 +45,9 @@ initModel =
   }
 
 
-init : () -> (Model, Cmd Msg)
-init _ = 
-  ( initModel  
+init : Int -> (Model, Cmd Msg)
+init flag = 
+  ( {initModel | enemyHp = flag } 
   , Cmd.none
   )
 
@@ -94,6 +97,7 @@ update msg model =
         AttackToEnemy ->
           (attackToEnemy model, Cmd.none)
 
+
 viewActor : Model -> Html Msg
 viewActor model =
   div []
@@ -107,6 +111,8 @@ viewActor model =
             [ text ("Attack: " ++ String.fromInt model.attack) ]
       , button [onClick AttackToEnemy] [ text "Attack" ]        
       ]
+
+
 view : Model -> Html Msg
 view model =
   div [] 

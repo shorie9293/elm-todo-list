@@ -12,12 +12,12 @@ main =
     Test.Runner.Node.run
         { runs = 100
         , report = ConsoleReport UseColor
-        , seed = 252346436630618
-        , processes = 6
+        , seed = 198683570848598
+        , processes = 8
         , globs =
             []
         , paths =
-            [ "D:\\document\\program\\elm\\elm-todo-list\\tests\\StatusTests.elm"
+            [ "F:\\Document\\000Program\\elm\\elm-todo-list\\tests\\StatusTests.elm"
             ]
         }
         [ ( "StatusTests"

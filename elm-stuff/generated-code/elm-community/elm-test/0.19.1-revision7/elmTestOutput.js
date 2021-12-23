@@ -1705,56 +1705,6 @@ var _Json_encodeNull = _Json_wrap(null);
 
 
 
-var _Bitwise_and = F2(function(a, b)
-{
-	return a & b;
-});
-
-var _Bitwise_or = F2(function(a, b)
-{
-	return a | b;
-});
-
-var _Bitwise_xor = F2(function(a, b)
-{
-	return a ^ b;
-});
-
-function _Bitwise_complement(a)
-{
-	return ~a;
-};
-
-var _Bitwise_shiftLeftBy = F2(function(offset, a)
-{
-	return a << offset;
-});
-
-var _Bitwise_shiftRightBy = F2(function(offset, a)
-{
-	return a >> offset;
-});
-
-var _Bitwise_shiftRightZfBy = F2(function(offset, a)
-{
-	return a >>> offset;
-});
-
-
-
-function _Test_runThunk(thunk)
-{
-  try {
-    // Attempt to run the thunk as normal.
-    return $elm$core$Result$Ok(thunk(_Utils_Tuple0));
-  } catch (err) {
-    // If it throws, return an error instead of crashing.
-    return $elm$core$Result$Err(err.toString());
-  }
-}
-
-
-
 // TASKS
 
 function _Scheduler_succeed(value)
@@ -2470,6 +2420,56 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 
 
 
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
+function _Test_runThunk(thunk)
+{
+  try {
+    // Attempt to run the thunk as normal.
+    return $elm$core$Result$Ok(thunk(_Utils_Tuple0));
+  } catch (err) {
+    // If it throws, return an error instead of crashing.
+    return $elm$core$Result$Err(err.toString());
+  }
+}
+
+
+
 function _Time_now(millisToPosix)
 {
 	return _Scheduler_binding(function(callback)
@@ -3096,85 +3096,7 @@ var $elm_explorations$test$Expect$equateWith = F4(
 		return usesFloats ? $elm_explorations$test$Expect$fail(floatError) : A5($elm_explorations$test$Expect$testWith, $elm_explorations$test$Test$Runner$Failure$Equality, reason, comparison, b, a);
 	});
 var $elm_explorations$test$Expect$equal = A2($elm_explorations$test$Expect$equateWith, 'Expect.equal', $elm$core$Basics$eq);
-var $elm$core$Basics$modBy = _Basics_modBy;
-var $author$project$TodoMain$judgeLevelUp = function (model) {
-	return (model.levelFlag && (!A2($elm$core$Basics$modBy, 30, model.exp))) ? _Utils_update(
-		model,
-		{attack: model.attack + 5, level: model.level + 1, levelFlag: false}) : _Utils_update(
-		model,
-		{levelFlag: false});
-};
-var $elm$core$Basics$sub = _Basics_sub;
-var $author$project$TodoMain$reduceEnemyHp = function (model) {
-	return _Utils_update(
-		model,
-		{enemyHp: model.enemyHp - model.attack});
-};
-var $elm_explorations$test$Test$Internal$blankDescriptionFailure = $elm_explorations$test$Test$Internal$failNow(
-	{
-		description: 'This test has a blank description. Let\'s give it a useful one!',
-		reason: $elm_explorations$test$Test$Runner$Failure$Invalid($elm_explorations$test$Test$Runner$Failure$BadDescription)
-	});
-var $elm_explorations$test$Test$test = F2(
-	function (untrimmedDesc, thunk) {
-		var desc = $elm$core$String$trim(untrimmedDesc);
-		return $elm$core$String$isEmpty(desc) ? $elm_explorations$test$Test$Internal$blankDescriptionFailure : A2(
-			$elm_explorations$test$Test$Internal$Labeled,
-			desc,
-			$elm_explorations$test$Test$Internal$UnitTest(
-				function (_v0) {
-					return _List_fromArray(
-						[
-							thunk(_Utils_Tuple0)
-						]);
-				}));
-	});
-var $author$project$StatusTests$attackToEnemyTests = A2(
-	$elm_explorations$test$Test$describe,
-	'敵に攻撃する',
-	_List_fromArray(
-		[
-			A2(
-			$elm_explorations$test$Test$test,
-			'敵のHPを初期値からAttack分減らす',
-			function (_v0) {
-				return A2(
-					$elm_explorations$test$Expect$equal,
-					{attack: 1, enemyHp: 9, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0},
-					$author$project$TodoMain$reduceEnemyHp(
-						{attack: 1, enemyHp: 10, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0}));
-			}),
-			A2(
-			$elm_explorations$test$Test$test,
-			'敵のHPが0以下の時、前回のHPから5増やす。',
-			function (_v1) {
-				return A2(
-					$elm_explorations$test$Expect$equal,
-					{attack: 1, enemyHp: 15, exp: 10, lastEnemyHp: 15, level: 1, levelFlag: true, point: 0},
-					$author$project$TodoMain$encountNextEnemy(
-						{attack: 1, enemyHp: 0, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0}));
-			}),
-			A2(
-			$elm_explorations$test$Test$test,
-			'経験値が30のときLevelを1, attackを5あげる',
-			function (_v2) {
-				return A2(
-					$elm_explorations$test$Expect$equal,
-					{attack: 6, enemyHp: 0, exp: 30, lastEnemyHp: 10, level: 2, levelFlag: false, point: 0},
-					$author$project$TodoMain$judgeLevelUp(
-						{attack: 1, enemyHp: 0, exp: 30, lastEnemyHp: 10, level: 1, levelFlag: true, point: 0}));
-			})
-		]));
-var $elm$core$Debug$todo = _Debug_todo;
-var $author$project$Test$Runner$Node$checkHelperReplaceMe___ = function (_v0) {
-	return _Debug_todo(
-		'Test.Runner.Node',
-		{
-			start: {line: 362, column: 5},
-			end: {line: 362, column: 15}
-		})('The regex for replacing this Debug.todo with some real code must have failed since you see this message!\n\nPlease report this bug: https://github.com/rtfeldman/node-test-runner/issues/new\n');
-};
-var $author$project$Test$Runner$Node$check = value => value && value.__elmTestSymbol === __elmTestSymbol ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
+var $author$project$TodoMain$initModel = {attack: 1, enemyHp: 10, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0};
 var $elm$json$Json$Decode$Failure = F2(
 	function (a, b) {
 		return {$: 'Failure', a: a, b: b};
@@ -3222,6 +3144,7 @@ var $elm$core$List$length = function (xs) {
 		xs);
 };
 var $elm$core$List$map2 = _List_map2;
+var $elm$core$Basics$sub = _Basics_sub;
 var $elm$core$List$rangeHelp = F3(
 	function (lo, hi, list) {
 		rangeHelp:
@@ -3520,6 +3443,124 @@ var $elm$core$Result$isOk = function (result) {
 		return false;
 	}
 };
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$TodoMain$init = function (flag) {
+	return _Utils_Tuple2(
+		_Utils_update(
+			$author$project$TodoMain$initModel,
+			{enemyHp: flag}),
+		$elm$core$Platform$Cmd$none);
+};
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $author$project$TodoMain$judgeLevelUp = function (model) {
+	return (model.levelFlag && (!A2($elm$core$Basics$modBy, 30, model.exp))) ? _Utils_update(
+		model,
+		{attack: model.attack + 5, level: model.level + 1, levelFlag: false}) : _Utils_update(
+		model,
+		{levelFlag: false});
+};
+var $author$project$TodoMain$reduceEnemyHp = function (model) {
+	return _Utils_update(
+		model,
+		{enemyHp: model.enemyHp - model.attack});
+};
+var $elm_explorations$test$Test$Internal$blankDescriptionFailure = $elm_explorations$test$Test$Internal$failNow(
+	{
+		description: 'This test has a blank description. Let\'s give it a useful one!',
+		reason: $elm_explorations$test$Test$Runner$Failure$Invalid($elm_explorations$test$Test$Runner$Failure$BadDescription)
+	});
+var $elm_explorations$test$Test$test = F2(
+	function (untrimmedDesc, thunk) {
+		var desc = $elm$core$String$trim(untrimmedDesc);
+		return $elm$core$String$isEmpty(desc) ? $elm_explorations$test$Test$Internal$blankDescriptionFailure : A2(
+			$elm_explorations$test$Test$Internal$Labeled,
+			desc,
+			$elm_explorations$test$Test$Internal$UnitTest(
+				function (_v0) {
+					return _List_fromArray(
+						[
+							thunk(_Utils_Tuple0)
+						]);
+				}));
+	});
+var $author$project$StatusTests$attackToEnemyTests = function () {
+	var status = {attack: 1, enemyHp: 10, exp: 0, lastEnemyHp: 10, level: 1, levelFlag: false, point: 0};
+	return A2(
+		$elm_explorations$test$Test$describe,
+		'敵に攻撃する',
+		_List_fromArray(
+			[
+				A2(
+				$elm_explorations$test$Test$test,
+				'敵のHPを初期値からAttack分減らす',
+				function (_v0) {
+					return A2(
+						$elm_explorations$test$Expect$equal,
+						_Utils_update(
+							status,
+							{enemyHp: 9}),
+						$author$project$TodoMain$reduceEnemyHp(status));
+				}),
+				A2(
+				$elm_explorations$test$Test$test,
+				'敵のHPが0以下の時、前回のHPから5増やす。',
+				function (_v1) {
+					return A2(
+						$elm_explorations$test$Expect$equal,
+						_Utils_update(
+							status,
+							{enemyHp: 15, exp: 10, lastEnemyHp: 15, levelFlag: true}),
+						$author$project$TodoMain$encountNextEnemy(
+							_Utils_update(
+								status,
+								{enemyHp: 0})));
+				}),
+				A2(
+				$elm_explorations$test$Test$test,
+				'経験値が30のときLevelを1, attackを5あげる',
+				function (_v2) {
+					return A2(
+						$elm_explorations$test$Expect$equal,
+						_Utils_update(
+							status,
+							{attack: 6, enemyHp: 0, exp: 30, level: 2, levelFlag: false}),
+						$author$project$TodoMain$judgeLevelUp(
+							_Utils_update(
+								status,
+								{enemyHp: 0, exp: 30, lastEnemyHp: 10, level: 1, levelFlag: true})));
+				}),
+				A2(
+				$elm_explorations$test$Test$test,
+				'statusとinitModelが一致する',
+				function (_v3) {
+					return A2($elm_explorations$test$Expect$equal, status, $author$project$TodoMain$initModel);
+				}),
+				A2(
+				$elm_explorations$test$Test$test,
+				'flagに15を渡してinitのHPに渡し、statusとinitが一致する',
+				function (_v4) {
+					return A2(
+						$elm_explorations$test$Expect$equal,
+						_Utils_Tuple2(
+							_Utils_update(
+								status,
+								{enemyHp: 15}),
+							$elm$core$Platform$Cmd$none),
+						$author$project$TodoMain$init(15));
+				})
+			]));
+}();
+var $elm$core$Debug$todo = _Debug_todo;
+var $author$project$Test$Runner$Node$checkHelperReplaceMe___ = function (_v0) {
+	return _Debug_todo(
+		'Test.Runner.Node',
+		{
+			start: {line: 362, column: 5},
+			end: {line: 362, column: 15}
+		})('The regex for replacing this Debug.todo with some real code must have failed since you see this message!\n\nPlease report this bug: https://github.com/rtfeldman/node-test-runner/issues/new\n');
+};
+var $author$project$Test$Runner$Node$check = value => value && value.__elmTestSymbol === __elmTestSymbol ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $author$project$Test$Runner$Node$Receive = function (a) {
 	return {$: 'Receive', a: a};
@@ -5906,8 +5947,6 @@ var $elm$core$Dict$fromList = function (assocs) {
 		$elm$core$Dict$empty,
 		assocs);
 };
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Test$Runner$Node$init = F2(
 	function (_v0, _v1) {
 		var processes = _v0.processes;
@@ -5986,11 +6025,11 @@ var $elm$core$String$replace = F3(
 			A2($elm$core$String$split, before, string));
 	});
 var $author$project$Test$Runner$Node$noTestsFoundError = function (globs) {
-	return $elm$core$List$isEmpty(globs) ? $elm$core$String$trim('\nNo exposed values of type Test found in the tests/ directory.\n\nAre there tests in any .elm file in the tests/ directory?\nIf not – add some!\nIf there are – are they exposed?\n        ') : A3(
+	return $elm$core$List$isEmpty(globs) ? $elm$core$String$trim('\r\nNo exposed values of type Test found in the tests/ directory.\r\n\r\nAre there tests in any .elm file in the tests/ directory?\r\nIf not – add some!\r\nIf there are – are they exposed?\r\n        ') : A3(
 		$elm$core$String$replace,
 		'%globs',
 		A2($elm$core$String$join, '\n', globs),
-		$elm$core$String$trim('\nNo exposed values of type Test found in files matching:\n\n%globs\n\nAre the above patterns correct? Maybe try running elm-test with no arguments?\n\nAre there tests in any of the matched files?\nIf not – add some!\nIf there are – are they exposed?\n        '));
+		$elm$core$String$trim('\r\nNo exposed values of type Test found in files matching:\r\n\r\n%globs\r\n\r\nAre the above patterns correct? Maybe try running elm-test with no arguments?\r\n\r\nAre there tests in any of the matched files?\r\nIf not – add some!\r\nIf there are – are they exposed?\r\n        '));
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
@@ -6544,11 +6583,11 @@ var $author$project$Test$Generated$Main$main = A2(
 	{
 		globs: _List_Nil,
 		paths: _List_fromArray(
-			['D:\\document\\program\\elm\\elm-todo-list\\tests\\StatusTests.elm']),
-		processes: 6,
+			['F:\\Document\\000Program\\elm\\elm-todo-list\\tests\\StatusTests.elm']),
+		processes: 8,
 		report: $author$project$Test$Reporter$Reporter$ConsoleReport($author$project$Console$Text$UseColor),
 		runs: 100,
-		seed: 252346436630618
+		seed: 198683570848598
 	},
 	_List_fromArray(
 		[
@@ -6562,7 +6601,7 @@ var $author$project$Test$Generated$Main$main = A2(
 _Platform_export({'Test':{'Generated':{'Main':{'init':$author$project$Test$Generated$Main$main($elm$json$Json$Decode$int)(0)}}}});}(this));
 return this.Elm;
 })({});
-var pipeFilename = "\\\\.\\pipe\\elm_test-12936-1";
+var pipeFilename = "\\\\.\\pipe\\elm_test-15048-1";
 var net = require('net'),
   client = net.createConnection(pipeFilename);
 
