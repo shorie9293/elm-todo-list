@@ -11,6 +11,7 @@ import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (hardcoded, required, optional)
 import Json.Encode as Encode
+import Html exposing (ol)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -23,25 +24,49 @@ main = Browser.element
 
 
 -- MODEL
-type alias Model =
-  { enemyHp : Int
+
+type alias EnemyModel =
+  { id : Int
+  , enemyHp : Int
   , lastEnemyHp : Int
+  }
+
+type alias ActorModel =
+  { id : Int
   , exp : Int
   , level : Int
   , levelFlag : Bool
   , point : Int
   , attack : Int}
 
+type alias Model =
+  { enemy : EnemyModel
+  , actor : ActorModel
+  }
 
-initModel : Model
-initModel =
-  { enemyHp = 10
+
+initEnemyModel : EnemyModel
+initEnemyModel =
+  { id = 0
+  , enemyHp = 10
   , lastEnemyHp = 10
+  }
+
+
+initActorModel : ActorModel
+initActorModel =
+  { id = 0
   , exp = 0
   , level = 1
   , levelFlag = False
   , point = 0
   , attack = 1
+  }
+    
+initModel : Model
+initModel =
+  { enemy = initEnemyModel
+  , actor = initActorModel
   }
 
 
@@ -64,24 +89,40 @@ attackToEnemy model =
 
 reduceEnemyHp : Model -> Model
 reduceEnemyHp model =
-  { model | enemyHp = model.enemyHp - model.attack}
-
+  let
+    oldEnemyModel = model.enemy
+    oldActorModel = model.actor
+    newEnemyModel = { oldEnemyModel | enemyHp = oldEnemyModel.enemyHp - oldActorModel.attack }
+  in
+    { model | enemy = newEnemyModel }
+    
 encountNextEnemy : Model -> Model
 encountNextEnemy model =
-  if model.enemyHp <= 0 then
-    { model | enemyHp = model.lastEnemyHp + 5
-    , lastEnemyHp = model.lastEnemyHp + 5
-    , exp = model.exp + 10
-    , levelFlag = True }
+  let
+    oldEnemyModel = model.enemy
+    oldActorModel = model.actor
+    newEnemyModel = { oldEnemyModel | enemyHp = oldEnemyModel.lastEnemyHp + 5
+                    , lastEnemyHp = oldEnemyModel.lastEnemyHp + 5 }
+    newActorModel = { oldActorModel | exp = oldActorModel.exp + 10, levelFlag = True}
+  in
+  if model.enemy.enemyHp <= 0 then
+    { enemy = newEnemyModel, actor = newActorModel }
   else
     model
 
 judgeLevelUp : Model -> Model
 judgeLevelUp model =
-  if model.levelFlag && modBy 30 model.exp == 0 then
-    { model | level = model.level + 1, attack = model.attack + 5, levelFlag = False }
+  let
+    oldActorModel = model.actor
+    newActorModel = { oldActorModel | level = oldActorModel.level + 1
+                    , attack = oldActorModel.attack + 5
+                    , levelFlag = False
+                    }
+  in
+  if oldActorModel.levelFlag && modBy 30 oldActorModel.exp == 0 then
+    { model | actor = newActorModel }
   else
-    { model | levelFlag = False }
+    { model | actor = { oldActorModel | levelFlag = False } }
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -92,23 +133,23 @@ update msg model =
 
 -- VIEW
 
-viewEnemy : Model -> Html Msg
-viewEnemy model =
+viewEnemy : EnemyModel -> Html Msg
+viewEnemy enemyModel =
   div []
-      [ text ("Enemy HP: " ++ String.fromInt model.enemyHp) ]
+      [ text ("Enemy HP: " ++ String.fromInt enemyModel.enemyHp) ]
   
 
-viewActor : Model -> Html Msg
-viewActor model =
+viewActor : ActorModel -> Html Msg
+viewActor actorModel =
   div []
       [ div [] 
-            [ text ("LV: " ++ String.fromInt model.level) ]    
+            [ text ("LV: " ++ String.fromInt actorModel.level) ]    
       , div [] 
-            [ text ("EXP: " ++ String.fromInt model.exp) ]
+            [ text ("EXP: " ++ String.fromInt actorModel.exp) ]
       , div [] 
-            [ text ("Point: " ++ String.fromInt model.point) ]
+            [ text ("Point: " ++ String.fromInt actorModel.point) ]
       , div [] 
-            [ text ("Attack: " ++ String.fromInt model.attack) ]
+            [ text ("Attack: " ++ String.fromInt actorModel.attack) ]
       , button [onClick AttackToEnemy] [ text "Attack" ]        
       ]
 
@@ -116,8 +157,8 @@ viewActor model =
 view : Model -> Html Msg
 view model =
   div [] 
-      [ viewEnemy model
-      , viewActor model  
+      [ viewEnemy model.enemy
+      , viewActor model.actor  
       ]
 
 
@@ -140,22 +181,42 @@ updateWithStorage msg oldModel =
 statusEncoder : Model -> Encode.Value
 statusEncoder model =
   Encode.object
-    [ ("enemyHp", Encode.int model.enemyHp)
-    , ("lastEnemyHp", Encode.int model.lastEnemyHp)
-    , ("exp", Encode.int model.exp)
-    , ("level", Encode.int model.level)
-    , ("levelFlag", Encode.bool model.levelFlag)
-    , ("point", Encode.int model.point)
-    , ("attack", Encode.int model.attack)
+    [ ("enemy", Encode.object 
+        [ ("id", Encode.int model.enemy.id)
+        , ("enemyHp", Encode.int model.enemy.enemyHp)
+        , ("lastEnemyHp", Encode.int model.enemy.lastEnemyHp)
+        ]
+      )
+    , ("actor", Encode.object 
+        [ ("id", Encode.int model.actor.id)
+        , ("exp", Encode.int model.actor.exp)
+        , ("level", Encode.int model.actor.level)
+        , ("levelFlag", Encode.bool model.actor.levelFlag)
+        , ("point", Encode.int model.actor.point)
+        , ("attack", Encode.int model.actor.attack)
+        ]
+      )
     ]
 
-statusDecoder : Decode.Decoder Model
-statusDecoder =
-  Decode.succeed Model
+statusEnemyDecoder : Decode.Decoder EnemyModel
+statusEnemyDecoder =
+  Decode.succeed EnemyModel
+    |> required "id" Decode.int
     |> required "enemyHp" Decode.int
     |> required "lastEnemyHp" Decode.int
+
+statusActorDecoder : Decode.Decoder ActorModel
+statusActorDecoder =
+  Decode.succeed ActorModel
+    |> required "id" Decode.int
     |> required "exp" Decode.int
     |> required "level" Decode.int
     |> required "levelFlag" Decode.bool
     |> required "point" Decode.int
     |> required "attack" Decode.int
+
+statusDecoder : Decode.Decoder Model
+statusDecoder =
+  Decode.map2 Model
+    statusEnemyDecoder
+    statusActorDecoder
