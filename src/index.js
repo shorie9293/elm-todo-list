@@ -1,28 +1,51 @@
 import { Elm } from "./TodoMain.elm"
 import { Dexie } from 'dexie';
 
-var storedData = localStorage.getItem('status-model');
-var flags = storedData ? JSON.parse(storedData) : null
+let db;
 
-var app = Elm.TodoMain.init({
-  node: document.getElementById("main"),
-  flags: flags
-});
+function openDB() {
+  if (!db) {
+    console.log("create new database");
+    db = new Dexie("TodoAppDatabase");
+    
+    db.version(1).stores({
+      enemy: "id",
+      actor: "id"
+    });
+  }
+  db.open();
+}
 
-app.ports.setStorage.subscribe(function(state) {
-  localStorage.setItem("status-model", JSON.stringify(state));
-  setStatusToDB(state);
-  console.log(JSON.stringify(state));
-})
+async function main() {
 
-function setStatusToDB(state) {
-  var db = new Dexie("TodoAppDatabase");
+  const storedData = JSON.stringify(await getStatusFromDB());
+  const flags = storedData ? JSON.parse(storedData) : null
   
-  db.version(1).stores({
-    enemy: "id",
-    actor: "id"
+  const app = Elm.TodoMain.init({
+    node: document.getElementById("main"),
+    flags: flags
   });
   
-  db.enemy.put(state.enemy);
-  db.actor.put(state.actor);
+  app.ports.setStorage.subscribe(function(state) {
+    localStorage.setItem("status-model", JSON.stringify(state));
+    setStatusToDB(state);
+  })
+
 }
+
+async function setStatusToDB(state) {
+  openDB();  
+  await db.enemy.put(state.enemy);
+  await db.actor.put(state.actor);
+  db.close();
+}
+
+async function getStatusFromDB () {
+  openDB();
+  const enemyData = await db.enemy.where("id").equals(0).toArray();
+  const actorData = await db.actor.where("id").equals(0).toArray();
+  db.close();
+  return {enemy : enemyData[0], actor: actorData[0]}
+}
+
+main();

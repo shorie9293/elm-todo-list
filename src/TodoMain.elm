@@ -46,7 +46,7 @@ type alias Model =
 
 initEnemyModel : EnemyModel
 initEnemyModel =
-  { id = 1
+  { id = 0
   , enemyHp = 10
   , lastEnemyHp = 10
   }
@@ -55,7 +55,7 @@ initEnemyModel =
 initActorModel : ActorModel
 initActorModel =
   { id = 0
-  , exp = 100
+  , exp = 0
   , level = 1
   , levelFlag = False
   , point = 0
