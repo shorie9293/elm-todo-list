@@ -5,7 +5,7 @@ port module TodoMain exposing ( main
 
 import Browser
 import Html exposing ( Html, div, text )
--- import Html.Attributes exposing ( class )
+import Html.Attributes exposing ( class )
 import Html exposing (button)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
@@ -140,7 +140,7 @@ viewEnemy enemyModel =
 
 viewActor : ActorModel -> Html Msg
 viewActor actorModel =
-  div []
+  div [ class "todo-text" ]
       [ div [] 
             [ text ("LV: " ++ String.fromInt actorModel.level) ]    
       , div [] 

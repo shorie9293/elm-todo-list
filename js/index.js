@@ -1,20 +1,5 @@
-import { Elm } from "./TodoMain.elm"
+import { Elm } from "../src/TodoMain.elm"
 import { Dexie } from 'dexie';
-
-let db;
-
-function openDB() {
-  if (!db) {
-    console.log("create new database");
-    db = new Dexie("TodoAppDatabase");
-    
-    db.version(1).stores({
-      enemy: "id",
-      actor: "id"
-    });
-  }
-  db.open();
-}
 
 async function main() {
 
@@ -31,6 +16,21 @@ async function main() {
     setStatusToDB(state);
   })
 
+}
+
+let db;
+
+function openDB() {
+  if (!db) {
+    console.log("create new database");
+    db = new Dexie("TodoAppDatabase");
+    
+    db.version(1).stores({
+      enemy: "id",
+      actor: "id"
+    });
+  }
+  db.open();
 }
 
 async function setStatusToDB(state) {

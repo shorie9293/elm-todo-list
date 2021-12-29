@@ -37,7 +37,7 @@ attackToEnemyTests =
         , test "敵のHPが0以下の時、前回のHPから5増やす。" <|
             \_ ->
                 encountNextEnemy { enemy = {enemyStatus | enemyHp = 0}, actor = actorStatus }
-                |> Expect.equal { enemy = {enemyStatus | enemyHp = 15, lastEnemyHp = 15}, actor = {actorStatus | exp = 10, levelFlag = False} }
+                |> Expect.equal { enemy = {enemyStatus | enemyHp = 15, lastEnemyHp = 15}, actor = {actorStatus | exp = 10, levelFlag = True} }
         , test "経験値が30のときLevelを1, attackを5あげる" <|
             \_ ->
                 judgeLevelUp  { enemy = {enemyStatus | enemyHp = 0}, actor = {actorStatus | exp = 30, levelFlag = True} }
