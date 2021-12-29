@@ -5,13 +5,12 @@ port module TodoMain exposing ( main
 
 import Browser
 import Html exposing ( Html, div, text )
-import Html.Attributes exposing ( class )
+-- import Html.Attributes exposing ( class )
 import Html exposing (button)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (hardcoded, required, optional)
+import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Html exposing (ol)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -47,7 +46,7 @@ type alias Model =
 
 initEnemyModel : EnemyModel
 initEnemyModel =
-  { id = 0
+  { id = 1
   , enemyHp = 10
   , lastEnemyHp = 10
   }
@@ -56,7 +55,7 @@ initEnemyModel =
 initActorModel : ActorModel
 initActorModel =
   { id = 0
-  , exp = 0
+  , exp = 100
   , level = 1
   , levelFlag = False
   , point = 0

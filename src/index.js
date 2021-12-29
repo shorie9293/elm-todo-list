@@ -11,6 +11,7 @@ var app = Elm.TodoMain.init({
 
 app.ports.setStorage.subscribe(function(state) {
   localStorage.setItem("status-model", JSON.stringify(state));
+  console.log(JSON.stringify(state));
 })
 
 var db = new Dexie("FriendDatabase");
