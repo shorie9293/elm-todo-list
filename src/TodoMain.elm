@@ -218,5 +218,5 @@ statusActorDecoder =
 statusDecoder : Decode.Decoder Model
 statusDecoder =
   Decode.map2 Model
-    statusEnemyDecoder
-    statusActorDecoder
+    (Decode.field "enemy" statusEnemyDecoder)
+    (Decode.field "actor" statusActorDecoder)
