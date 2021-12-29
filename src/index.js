@@ -11,24 +11,18 @@ var app = Elm.TodoMain.init({
 
 app.ports.setStorage.subscribe(function(state) {
   localStorage.setItem("status-model", JSON.stringify(state));
+  setStatusToDB(state);
   console.log(JSON.stringify(state));
 })
 
-var db = new Dexie("FriendDatabase");
-
-// DB with single table "friends" with primary key "id" and
-// indexes on properties "name" and "age"
-db.version(1).stores({
-  friends: `
-    id,
-    name,
-    age`,
-});
-
-// Now add some values.
-db.friends.bulkPut([
-  { id: 1, name: "Josephine", age: 21 },
-  { id: 2, name: "Per", age: 75 },
-  { id: 3, name: "Simon", age: 5 },
-  { id: 4, name: "Sara", age: 50, notIndexedProperty: 'foo' }
-])
+function setStatusToDB(state) {
+  var db = new Dexie("TodoAppDatabase");
+  
+  db.version(1).stores({
+    enemy: "id",
+    actor: "id"
+  });
+  
+  db.enemy.put(state.enemy);
+  db.actor.put(state.actor);
+}
