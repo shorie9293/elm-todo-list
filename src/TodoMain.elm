@@ -12,14 +12,13 @@ import Url exposing (Url)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
-import Html exposing ( Html, div, text, h1 )
+import Html exposing ( Html, div, text, h1, a )
 import Html.Attributes exposing ( class )
 import Html exposing (button)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Html exposing (nav)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -192,14 +191,15 @@ setNewPage maybeRoute model =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-    case msg of
-        AttackToEnemy ->
+    case (msg, model.page) of
+        (AttackToEnemy, _) ->
           ({model | buttle = attackToEnemy model.buttle}, Cmd.none)
-        NewRoute maybeRoute ->
+        (NewRoute maybeRoute, _) ->
           setNewPage maybeRoute model
+        (Visit (Browser.Internal url), _) ->
+          (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         _ ->
           (model, Cmd.none)
-
 -- VIEW
 
 viewEnemy : EnemyModel -> Html Msg
@@ -245,6 +245,16 @@ viewContent model =
             [ h1 [] [text "Page Not Found!!"] ]
       )
 
+viewHeader : Html Msg
+viewHeader =
+  div []
+      [ div []
+            [ a [ Routes.href Routes.Todo]
+                [ text "todo |"]
+            , a [ Routes.href Routes.Buttle]
+                [ text " buttle"]
+             ]
+      ]
 
 view : Model -> Document Msg
 view model =
@@ -254,7 +264,7 @@ view model =
   in
   { title = title,
     body = 
-      [ content ]
+      [ viewHeader, content ]
   }
 
 -- PORT
