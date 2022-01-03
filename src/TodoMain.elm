@@ -1,28 +1,44 @@
 port module TodoMain exposing ( main
+                          , Page
+                          , ActorModel
+                          , EnemyModel
+                          , ButtleModel
+                          , Model
                           , reduceEnemyHp
                           , encountNextEnemy
                           , judgeLevelUp )
+import Routes
+import Url exposing (Url)
 
-import Browser
-import Html exposing ( Html, div, text )
+import Browser exposing (Document, UrlRequest)
+import Browser.Navigation as Navigation
+import Html exposing ( Html, div, text, h1 )
 import Html.Attributes exposing ( class )
 import Html exposing (button)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
+import Html exposing (nav)
 
 -- MAIN
 main : Program Encode.Value Model Msg
-main = Browser.element
+main = Browser.application
   { init = init
   , view = view
   , update = updateWithStorage
   , subscriptions = \_ -> Sub.none
+  , onUrlRequest = Visit
+  , onUrlChange = Routes.match >> NewRoute
   }
 
 
 -- MODEL
+
+type Page
+  = Todo
+  | Buttle
+  | NotFound
 
 type alias EnemyModel =
   { id : Int
@@ -38,9 +54,15 @@ type alias ActorModel =
   , point : Int
   , attack : Int}
 
-type alias Model =
+type alias ButtleModel =
   { enemy : EnemyModel
   , actor : ActorModel
+  }
+
+type alias Model =
+  { page : Page
+  , navigationKey : Navigation.Key
+  , buttle : ButtleModel
   }
 
 
@@ -61,74 +83,122 @@ initActorModel =
   , point = 0
   , attack = 1
   }
-    
-initModel : Model
-initModel =
+
+initButtleModel : ButtleModel
+initButtleModel =
   { enemy = initEnemyModel
   , actor = initActorModel
   }
+    
+initModel : Navigation.Key -> Model
+initModel navigationKey =
+  { page = NotFound
+  , navigationKey = navigationKey
+  , buttle = initButtleModel
+  }
 
 
-init : Encode.Value -> (Model, Cmd Msg)
-init flags = 
-  ( case Decode.decodeValue statusDecoder flags of
-      Ok model -> model
-      Err _ -> initModel
-  , Cmd.none )
+init : Encode.Value -> Url -> Navigation.Key -> (Model, Cmd Msg)
+init flags url navigationKey = 
+  case Decode.decodeValue statusDecoder flags of
+    Ok model -> setButtleModel model navigationKey 
+                |> setNewPage (Routes.match url)
+    Err _ -> setNewPage (Routes.match url) (initModel navigationKey)
 
   
 -- UPDATE
-type Msg = AttackToEnemy
+type Msg 
+  = AttackToEnemy
+  | NewRoute (Maybe Routes.Route)
+  | Visit UrlRequest
 
-attackToEnemy : Model -> Model
+attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
   reduceEnemyHp model
   |> encountNextEnemy
   |> judgeLevelUp
 
-reduceEnemyHp : Model -> Model
+reduceEnemyHp : ButtleModel -> ButtleModel
 reduceEnemyHp model =
   let
     oldEnemyModel = model.enemy
     oldActorModel = model.actor
-    newEnemyModel = { oldEnemyModel | enemyHp = oldEnemyModel.enemyHp - oldActorModel.attack }
+
   in
-    { model | enemy = newEnemyModel }
+    { model | 
+        enemy =
+          { oldEnemyModel | enemyHp = oldEnemyModel.enemyHp - oldActorModel.attack }
+    }
     
-encountNextEnemy : Model -> Model
+encountNextEnemy : ButtleModel -> ButtleModel
 encountNextEnemy model =
   let
     oldEnemyModel = model.enemy
     oldActorModel = model.actor
-    newEnemyModel = { oldEnemyModel | enemyHp = oldEnemyModel.lastEnemyHp + 5
-                    , lastEnemyHp = oldEnemyModel.lastEnemyHp + 5 }
-    newActorModel = { oldActorModel | exp = oldActorModel.exp + 10, levelFlag = True}
+    newEnemyModel = 
+      { oldEnemyModel |
+          enemyHp = oldEnemyModel.lastEnemyHp + 5
+          , lastEnemyHp = oldEnemyModel.lastEnemyHp + 5
+      }
+    newActorModel = 
+      { oldActorModel |
+        exp = oldActorModel.exp + 10
+        , levelFlag = True
+      }
   in
-  if model.enemy.enemyHp <= 0 then
-    { enemy = newEnemyModel, actor = newActorModel }
+  if oldEnemyModel.enemyHp <= 0 then
+    { model |
+      enemy = newEnemyModel
+      , actor = newActorModel
+    }
   else
     model
 
-judgeLevelUp : Model -> Model
+judgeLevelUp : ButtleModel -> ButtleModel
 judgeLevelUp model =
   let
     oldActorModel = model.actor
-    newActorModel = { oldActorModel | level = oldActorModel.level + 1
-                    , attack = oldActorModel.attack + 5
-                    , levelFlag = False
+    newActorModel = { oldActorModel | 
+                        level = oldActorModel.level + 1
+                      , attack = oldActorModel.attack + 5
+                      , levelFlag = False
                     }
   in
   if oldActorModel.levelFlag && modBy 30 oldActorModel.exp == 0 then
-    { model | actor = newActorModel }
+    { model | actor = newActorModel}
   else
-    { model | actor = { oldActorModel | levelFlag = False } }
+    { model | actor = 
+      {oldActorModel | levelFlag = False }
+    }
+
+setButtleModel : ButtleModel -> Navigation.Key -> Model
+setButtleModel buttleModel navigationKey =
+  let
+    newModel = initModel navigationKey 
+  in
+    { newModel | buttle = buttleModel }
+
+
+setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
+setNewPage maybeRoute model =
+  case maybeRoute of
+    Just Routes.Todo ->
+      ( { model | page = Todo }, Cmd.none )
+    Just Routes.Buttle ->
+      ( { model | page = Buttle }, Cmd.none )
+    Nothing ->
+      ( { model | page = NotFound }, Cmd.none )
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         AttackToEnemy ->
-          (attackToEnemy model, Cmd.none)
+          ({model | buttle = attackToEnemy model.buttle}, Cmd.none)
+        NewRoute maybeRoute ->
+          setNewPage maybeRoute model
+        _ ->
+          (model, Cmd.none)
 
 -- VIEW
 
@@ -152,14 +222,40 @@ viewActor actorModel =
       , button [onClick AttackToEnemy] [ text "Attack" ]        
       ]
 
+viewContent : Model -> ( String, Html Msg )
+viewContent model =
+  case model.page of
+    Todo ->
+      ( "Todo List"
+      , h1 [] [text "Todo List"]
+      )
+    Buttle ->
+      ( "Buttle Field"
+      , div []
+            [ h1 [] [text "Buttle Field"]
+            , div [] 
+                  [ viewEnemy model.buttle.enemy
+                  , viewActor model.buttle.actor 
+                  ]
+            ]
+      )
+    NotFound ->
+      ( "Not Found"
+      , div []
+            [ h1 [] [text "Page Not Found!!"] ]
+      )
 
-view : Model -> Html Msg
+
+view : Model -> Document Msg
 view model =
-  div [] 
-      [ viewEnemy model.enemy
-      , viewActor model.actor  
-      ]
-
+  let
+    ( title, content) =
+      viewContent model
+  in
+  { title = title,
+    body = 
+      [ content ]
+  }
 
 -- PORT
 
@@ -181,18 +277,18 @@ statusEncoder : Model -> Encode.Value
 statusEncoder model =
   Encode.object
     [ ("enemy", Encode.object 
-        [ ("id", Encode.int model.enemy.id)
-        , ("enemyHp", Encode.int model.enemy.enemyHp)
-        , ("lastEnemyHp", Encode.int model.enemy.lastEnemyHp)
+        [ ("id", Encode.int model.buttle.enemy.id)
+        , ("enemyHp", Encode.int model.buttle.enemy.enemyHp)
+        , ("lastEnemyHp", Encode.int model.buttle.enemy.lastEnemyHp)
         ]
       )
     , ("actor", Encode.object 
-        [ ("id", Encode.int model.actor.id)
-        , ("exp", Encode.int model.actor.exp)
-        , ("level", Encode.int model.actor.level)
-        , ("levelFlag", Encode.bool model.actor.levelFlag)
-        , ("point", Encode.int model.actor.point)
-        , ("attack", Encode.int model.actor.attack)
+        [ ("id", Encode.int model.buttle.actor.id)
+        , ("exp", Encode.int model.buttle.actor.exp)
+        , ("level", Encode.int model.buttle.actor.level)
+        , ("levelFlag", Encode.bool model.buttle.actor.levelFlag)
+        , ("point", Encode.int model.buttle.actor.point)
+        , ("attack", Encode.int model.buttle.actor.attack)
         ]
       )
     ]
@@ -214,8 +310,8 @@ statusActorDecoder =
     |> required "point" Decode.int
     |> required "attack" Decode.int
 
-statusDecoder : Decode.Decoder Model
+statusDecoder : Decode.Decoder ButtleModel
 statusDecoder =
-  Decode.map2 Model
+  Decode.map2 ButtleModel
     (Decode.field "enemy" statusEnemyDecoder)
     (Decode.field "actor" statusActorDecoder)

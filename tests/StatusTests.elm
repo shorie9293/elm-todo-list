@@ -1,15 +1,48 @@
 module StatusTests exposing (attackToEnemyTests)
 
-import TodoMain exposing (reduceEnemyHp, encountNextEnemy, judgeLevelUp)
+import TodoMain as Main exposing (Model, Page, reduceEnemyHp, encountNextEnemy, judgeLevelUp)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
+import Browser.Navigation as Navigation
+import Browser.Dom exposing (Error(..))
 
+
+type Page
+    = Todo
+    | Buttle
+    | NotFound
+
+type alias EnemyModel =
+  { id : Int
+  , enemyHp : Int
+  , lastEnemyHp : Int
+  }
+
+type alias ActorModel =
+  { id : Int
+  , exp : Int
+  , level : Int
+  , levelFlag : Bool
+  , point : Int
+  , attack : Int}
+
+type alias ButtleModel =
+  { enemy : EnemyModel
+  , actor : ActorModel
+  }
+
+type alias Model =
+  { page : Page
+  , navigationKey : Navigation.Key
+  , buttle : ButtleModel
+  }
 
 
 attackToEnemyTests : Test
 attackToEnemyTests =
     let
+
         enemyStatus = 
             { id = 0
             , enemyHp = 10
@@ -27,13 +60,14 @@ attackToEnemyTests =
             { enemy = enemyStatus
             , actor = actorStatus
             }
-        
+
+
     in
     describe "敵に攻撃する"
         [ test "敵のHPを初期値からAttack分減らす" <|
             \_ ->
                 reduceEnemyHp status
-                |> Expect.equal { enemy = {enemyStatus | enemyHp = 9}, actor = actorStatus }
+                |> Expect.equal { status | enemy = {enemyStatus | enemyHp = 9}}
         , test "敵のHPが0以下の時、前回のHPから5増やす。" <|
             \_ ->
                 encountNextEnemy { enemy = {enemyStatus | enemyHp = 0}, actor = actorStatus }
