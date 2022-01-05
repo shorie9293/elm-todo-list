@@ -1,9 +1,5 @@
 port module TodoMain exposing ( main
-                          , Page
-                          , ActorModel
-                          , EnemyModel
-                          , ButtleModel
-                          , Model
+                          , initTodoModel
                           , reduceEnemyHp
                           , encountNextEnemy
                           , judgeLevelUp )
@@ -39,6 +35,14 @@ type Page
   | Buttle
   | NotFound
 
+type alias Task =
+  { id : Int
+  , checked : Bool
+  , task : String
+  , project : String
+  , todoType : String
+  }
+
 type alias EnemyModel =
   { id : Int
   , enemyHp : Int
@@ -58,10 +62,12 @@ type alias ButtleModel =
   , actor : ActorModel
   }
 
+
 type alias Model =
   { page : Page
   , navigationKey : Navigation.Key
   , buttle : ButtleModel
+  , todos : List Task
   }
 
 
@@ -88,12 +94,24 @@ initButtleModel =
   { enemy = initEnemyModel
   , actor = initActorModel
   }
+
+initTodoModel : List Task
+initTodoModel =
+  [ 
+    { id = 0
+    , checked = False
+    , task = ""
+    , project = "" 
+    , todoType = ""
+    }
+  ]
     
 initModel : Navigation.Key -> Model
 initModel navigationKey =
   { page = NotFound
   , navigationKey = navigationKey
   , buttle = initButtleModel
+  , todos = initTodoModel
   }
 
 

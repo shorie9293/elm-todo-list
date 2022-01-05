@@ -1,6 +1,6 @@
 module StatusTests exposing (attackToEnemyTests)
 
-import TodoMain exposing (Model, Page, reduceEnemyHp, encountNextEnemy, judgeLevelUp)
+import TodoMain exposing (initTodoModel, reduceEnemyHp, encountNextEnemy, judgeLevelUp)
 import Routes as R exposing (Route(..), routeToUrl)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
@@ -26,6 +26,16 @@ attackToEnemyTests =
       { enemy = enemyStatus
       , actor = actorStatus
       }
+
+    initTodoModel =
+      [ 
+        { id = 0
+        , checked = False
+        , task = ""
+        , project = "" 
+        , todoType = ""
+        }
+      ]
   in
   describe "全てのテスト" [
     describe "バトルフィールドのテスト"
@@ -54,6 +64,13 @@ attackToEnemyTests =
             routeToUrl R.Buttle
             |> Expect.equal "/buttle"
         ]
+      ]
+  , describe "Todo Test"
+      [ test " id=0, checked=false, todoの初期値がタイトル→空、重要度→メイン、種類→つぎにやる" <|
+          \_ ->
+            initTodoModel
+            |> Expect.equal initTodoModel
+
       ]
 
   ]
