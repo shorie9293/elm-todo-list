@@ -11,6 +11,7 @@ import Browser.Navigation as Navigation
 import Html exposing ( Html, div, text, h1, a, input, label, button, label )
 import Html.Attributes exposing ( class, type_, name, for, value )
 import Html.Events exposing ( .. )
+import Html.Events.Extra exposing ( onChange )
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
@@ -276,7 +277,7 @@ viewInput task =
           , autofocus True
           , value task
           , name "newTodo"
-          , onInput NewTask
+          , onChange NewTask
           ]
           []
       ]
