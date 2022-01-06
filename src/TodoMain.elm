@@ -8,9 +8,8 @@ import Url exposing (Url)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
-import Html exposing ( Html, div, text, h1, a )
-import Html.Attributes exposing ( class )
-import Html exposing (button)
+import Html exposing ( Html, div, text, h1, a, input, label, button, li, label )
+import Html.Attributes exposing ( class, type_, name, for)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
@@ -101,6 +100,28 @@ initTodoModel =
     { id = 0
     , checked = False
     , task = ""
+    , project = "" 
+    , todoType = ""
+    }
+  ]
+
+testInitTodoModel : List Task
+testInitTodoModel =
+  [ { id = 0
+    , checked = False
+    , task = "first"
+    , project = "" 
+    , todoType = ""
+    }
+  , { id = 1
+    , checked = False
+    , task = "second"
+    , project = "" 
+    , todoType = ""
+    }
+  , { id = 2
+    , checked = False
+    , task = "thierd"
     , project = "" 
     , todoType = ""
     }
@@ -240,12 +261,28 @@ viewActor actorModel =
       , button [onClick AttackToEnemy] [ text "Attack" ]        
       ]
 
+viewTodoList : List Task -> Html Msg
+viewTodoList model =
+  div []
+    (List.map viewTodo model)
+
+viewTodo : Task -> Html msg
+viewTodo todo =
+  div []
+      [
+        input [name "toggle", type_ "checkbox"] [ ]
+      , label [for "toggle"] [ text todo.task ]
+      ]
+
 viewContent : Model -> ( String, Html Msg )
 viewContent model =
   case model.page of
     Todo ->
       ( "Todo List"
-      , h1 [] [text "Todo List"]
+      , div [] 
+            [ h1 [] [text "Todo List"]
+            , viewTodoList testInitTodoModel
+            ]
       )
     Buttle ->
       ( "Buttle Field"
