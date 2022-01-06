@@ -8,12 +8,14 @@ import Url exposing (Url)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
-import Html exposing ( Html, div, text, h1, a, input, label, button, li, label )
-import Html.Attributes exposing ( class, type_, name, for)
-import Html.Events exposing (onClick)
+import Html exposing ( Html, div, text, h1, a, input, label, button, label )
+import Html.Attributes exposing ( class, type_, name, for, value )
+import Html.Events exposing ( .. )
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
+import Html.Attributes exposing (placeholder)
+import Html.Attributes exposing (autofocus)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -67,6 +69,7 @@ type alias Model =
   , navigationKey : Navigation.Key
   , buttle : ButtleModel
   , todos : List Task
+  , todo : String
   }
 
 
@@ -96,43 +99,26 @@ initButtleModel =
 
 initTodoModel : List Task
 initTodoModel =
-  [ 
-    { id = 0
-    , checked = False
-    , task = ""
-    , project = "" 
-    , todoType = ""
-    }
-  ]
+  [ ]
 
-testInitTodoModel : List Task
-testInitTodoModel =
-  [ { id = 0
-    , checked = False
-    , task = "first"
-    , project = "" 
-    , todoType = ""
-    }
-  , { id = 1
-    , checked = False
-    , task = "second"
-    , project = "" 
-    , todoType = ""
-    }
-  , { id = 2
-    , checked = False
-    , task = "thierd"
-    , project = "" 
-    , todoType = ""
-    }
-  ]
-    
+
+initTask : Task
+initTask =
+  { id = 0
+  , checked = False
+  , task = ""
+  , project = "" 
+  , todoType = ""
+  }
+
+
 initModel : Navigation.Key -> Model
 initModel navigationKey =
   { page = NotFound
   , navigationKey = navigationKey
   , buttle = initButtleModel
   , todos = initTodoModel
+  , todo = ""
   }
 
 
@@ -149,6 +135,8 @@ type Msg
   = AttackToEnemy
   | NewRoute (Maybe Routes.Route)
   | Visit UrlRequest
+  | AddToTask Task
+  | NewTask String
 
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
@@ -237,8 +225,13 @@ update msg model =
           setNewPage maybeRoute model
         (Visit (Browser.Internal url), _) ->
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
+        (AddToTask task, _) ->
+          ({ model | todos = (List.append model.todos [task]), todo = ""}, Cmd.none)
+        (NewTask task, _) ->
+          ({ model | todo = task}, Cmd.none)
         _ ->
           (model, Cmd.none)
+
 -- VIEW
 
 viewEnemy : EnemyModel -> Html Msg
@@ -274,6 +267,26 @@ viewTodo todo =
       , label [for "toggle"] [ text todo.task ]
       ]
 
+viewInput : String -> Html Msg
+viewInput task =
+  div []
+      [ input
+          [ type_ "text"
+          , placeholder "やること"
+          , autofocus True
+          , value task
+          , name "newTodo"
+          , onInput NewTask
+          ]
+          []
+      ]
+
+viewAddTodo : Task -> Html Msg
+viewAddTodo task =
+  button [ onClick (AddToTask task) ]
+        [ text "Add Task"]
+
+
 viewContent : Model -> ( String, Html Msg )
 viewContent model =
   case model.page of
@@ -281,7 +294,9 @@ viewContent model =
       ( "Todo List"
       , div [] 
             [ h1 [] [text "Todo List"]
-            , viewTodoList testInitTodoModel
+            , viewInput model.todo 
+            , viewAddTodo { initTask | task = model.todo }
+            , viewTodoList model.todos
             ]
       )
     Buttle ->
