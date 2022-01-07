@@ -70,7 +70,7 @@ type alias Model =
   , navigationKey : Navigation.Key
   , buttle : ButtleModel
   , taskList : List Task
-  , task : String
+  , task : Task
   }
 
 
@@ -119,7 +119,7 @@ initModel navigationKey =
   , navigationKey = navigationKey
   , buttle = initButtleModel
   , taskList = initTodoModel
-  , task = ""
+  , task = initTask
   }
 
 
@@ -227,9 +227,9 @@ update msg model =
         (Visit (Browser.Internal url), _) ->
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
-          ({ model | taskList = (List.append model.taskList [task]), task = ""}, Cmd.none)
+          ({ model | taskList = (List.append model.taskList [task]), task = initTask}, Cmd.none)
         (NewTask task, _) ->
-          ({ model | task = task}, Cmd.none)
+          ({ model | task = { initTask | task = task} }, Cmd.none)
         _ ->
           (model, Cmd.none)
 
@@ -295,8 +295,8 @@ viewContent model =
       ( "Todo List"
       , div [] 
             [ h1 [] [text "Todo List"]
-            , viewInput model.task
-            , viewAddTodo { initTask | task = model.task }
+            , viewInput model.task.task
+            , viewAddTodo { initTask | task = model.task.task }
             , viewTodoList model.taskList
             ]
       )
@@ -340,20 +340,41 @@ view model =
 
 -- PORT
 
-port setStorage : Encode.Value -> Cmd msg
+port setStatusStorage : Encode.Value -> Cmd msg
+port setTasksStorage : Encode.Value -> Cmd msg
 
+updateTodoStorage : Msg -> Model -> ( Model, Cmd Msg )
+updateTodoStorage msg oldModel =
+  let
+    ( newModel, cmds ) = update msg oldModel
+  in
+    case msg of
+      AddToTask _ ->
+        ( newModel
+        , Cmd.batch [ setTasksStorage (taskEncoder newModel), cmds]
+        )
+      _ ->
+        ( newModel, cmds)
 
 updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
   let
     ( newModel, cmds ) = update msg oldModel
   in
-    ( newModel
-    , Cmd.batch [ setStorage (statusEncoder newModel), cmds]
-    )
+    case msg of
+      NewTask task ->
+        ( newModel
+        , Cmd.batch [ setTasksStorage (taskEncoder newModel), cmds]
+        )
+      AttackToEnemy ->
+        ( newModel
+        , Cmd.batch [ setStatusStorage (statusEncoder newModel), cmds]
+        )
+      _ ->
+        ( newModel, cmds )
 
 -- JSON ENCODE/DECODE
-
+-- Buttle
 statusEncoder : Model -> Encode.Value
 statusEncoder model =
   Encode.object
@@ -374,6 +395,24 @@ statusEncoder model =
       )
     ]
 
+taskEncoder : Model -> Encode.Value
+taskEncoder model =
+  Encode.object
+    [ ("id", Encode.int model.task.id)
+    , ("checked", Encode.bool model.task.checked)
+    , ("task", Encode.string model.task.task)
+    , ("project", Encode.string model.task.project)
+    , ("taskType", Encode.string model.task.taskType)
+    ]
+
+
+  --   type alias Task =
+  -- { id : Int
+  -- , checked : Bool
+  -- , task : String
+  -- , project : String
+  -- , taskType : String
+  -- }
 statusEnemyDecoder : Decode.Decoder EnemyModel
 statusEnemyDecoder =
   Decode.succeed EnemyModel
@@ -396,3 +435,14 @@ statusDecoder =
   Decode.map2 ButtleModel
     (Decode.field "enemy" statusEnemyDecoder)
     (Decode.field "actor" statusActorDecoder)
+
+-- Todo
+taskDecoder : Decode.Decoder Task
+taskDecoder =
+  Decode.succeed Task
+    |> required "id" Decode.int
+    |> required "checked" Decode.bool
+    |> required "task" Decode.string
+    |> required "project" Decode.string
+    |> required "taskType" Decode.string
+

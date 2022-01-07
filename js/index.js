@@ -11,10 +11,15 @@ async function main() {
     flags: flags
   });
   
-  app.ports.setStorage.subscribe(function(state) {
-    localStorage.setItem("status-model", JSON.stringify(state));
+  app.ports.setStatusStorage.subscribe(function(state) {
     setStatusToDB(state);
   })
+
+  app.ports.setTasksStorage.subscribe(function(state) {
+    localStorage.setItem("todo-model", JSON.stringify(state));
+    setTasksToDB(state);
+  })
+
 
 }
 
@@ -29,6 +34,19 @@ function openDB() {
       enemy: "id",
       actor: "id"
     });
+
+    db.version(2).stores({
+      enemy: "id",
+      actor: "id",
+      todo: "id"
+    });
+
+    db.version(3).stores({
+      enemy: "id",
+      actor: "id",
+      todo: "task"
+    });
+
   }
   db.open();
 }
@@ -47,5 +65,13 @@ async function getStatusFromDB () {
   db.close();
   return {enemy : enemyData[0], actor: actorData[0]}
 }
+
+async function setTasksToDB(state) {
+  openDB();
+  console.log(state);
+  await db.todo.put(state);
+  db.close();
+}
+
 
 main();
