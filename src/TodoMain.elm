@@ -10,13 +10,13 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
 import Html exposing ( Html, div, text, h1, a, input, label, button, label )
 import Html.Attributes exposing ( class, type_, name, for, value )
+import Html.Attributes exposing (placeholder)
+import Html.Attributes exposing (autofocus)
 import Html.Events exposing ( .. )
 import Html.Events.Extra exposing ( onChange )
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
-import Html.Attributes exposing (placeholder)
-import Html.Attributes exposing (autofocus)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -42,7 +42,7 @@ type alias Task =
   , checked : Bool
   , task : String
   , project : String
-  , todoType : String
+  , taskType : String
   }
 
 type alias EnemyModel =
@@ -69,8 +69,8 @@ type alias Model =
   { page : Page
   , navigationKey : Navigation.Key
   , buttle : ButtleModel
-  , todos : List Task
-  , todo : String
+  , taskList : List Task
+  , task : String
   }
 
 
@@ -109,7 +109,7 @@ initTask =
   , checked = False
   , task = ""
   , project = "" 
-  , todoType = ""
+  , taskType = ""
   }
 
 
@@ -118,8 +118,8 @@ initModel navigationKey =
   { page = NotFound
   , navigationKey = navigationKey
   , buttle = initButtleModel
-  , todos = initTodoModel
-  , todo = ""
+  , taskList = initTodoModel
+  , task = ""
   }
 
 
@@ -227,9 +227,9 @@ update msg model =
         (Visit (Browser.Internal url), _) ->
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
-          ({ model | todos = (List.append model.todos [task]), todo = ""}, Cmd.none)
+          ({ model | taskList = (List.append model.taskList [task]), task = ""}, Cmd.none)
         (NewTask task, _) ->
-          ({ model | todo = task}, Cmd.none)
+          ({ model | task = task}, Cmd.none)
         _ ->
           (model, Cmd.none)
 
@@ -295,9 +295,9 @@ viewContent model =
       ( "Todo List"
       , div [] 
             [ h1 [] [text "Todo List"]
-            , viewInput model.todo 
-            , viewAddTodo { initTask | task = model.todo }
-            , viewTodoList model.todos
+            , viewInput model.task
+            , viewAddTodo { initTask | task = model.task }
+            , viewTodoList model.taskList
             ]
       )
     Buttle ->
