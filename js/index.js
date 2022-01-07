@@ -3,8 +3,20 @@ import { Dexie } from 'dexie';
 
 async function main() {
 
-  const storedData = JSON.stringify(await getStatusFromDB());
-  const flags = storedData ? JSON.parse(storedData) : null
+  // const statusData = JSON.stringify(await getStatusFromDB());
+  // const todoData = JSON.stringify(await getTasksFromDB());
+  const statusData = await getStatusFromDB();
+  const todoData = await getTasksFromDB();
+
+  console.log({"status" : statusData, "todos" : todoData});
+
+  const flag = JSON.stringify({"status": statusData, 
+                "todos" : todoData
+                })
+
+  console.log(flag);
+
+  const flags = flag ? JSON.parse(flag) : null
   
   const app = Elm.TodoMain.init({
     node: document.getElementById("main"),
@@ -16,7 +28,6 @@ async function main() {
   })
 
   app.ports.setTasksStorage.subscribe(function(state) {
-    localStorage.setItem("todo-model", JSON.stringify(state));
     setTasksToDB(state);
   })
 
@@ -32,19 +43,8 @@ function openDB() {
     
     db.version(1).stores({
       enemy: "id",
-      actor: "id"
-    });
-
-    db.version(2).stores({
-      enemy: "id",
       actor: "id",
-      todo: "id"
-    });
-
-    db.version(3).stores({
-      enemy: "id",
-      actor: "id",
-      todo: "task"
+      todo: "++id, task"
     });
 
   }
@@ -60,8 +60,8 @@ async function setStatusToDB(state) {
 
 async function getStatusFromDB () {
   openDB();
-  const enemyData = await db.enemy.where("id").equals(0).toArray();
-  const actorData = await db.actor.where("id").equals(0).toArray();
+  const enemyData = await db.enemy.toArray();
+  const actorData = await db.actor.toArray();
   db.close();
   return {enemy : enemyData[0], actor: actorData[0]}
 }
@@ -73,5 +73,11 @@ async function setTasksToDB(state) {
   db.close();
 }
 
+async function getTasksFromDB () {
+  openDB();
+  const taskData = await db.todo.toArray();
+  db.close;
+  return taskData;
+}
 
 main();

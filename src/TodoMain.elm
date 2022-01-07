@@ -9,7 +9,7 @@ import Url exposing (Url)
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
 import Html exposing ( Html, div, text, h1, a, input, label, button, label )
-import Html.Attributes exposing ( class, type_, name, for, value )
+import Html.Attributes exposing ( id, class, type_, name, for, value )
 import Html.Attributes exposing (placeholder)
 import Html.Attributes exposing (autofocus)
 import Html.Events exposing ( .. )
@@ -38,8 +38,7 @@ type Page
   | NotFound
 
 type alias Task =
-  { id : Int
-  , checked : Bool
+  { checked : Bool
   , task : String
   , project : String
   , taskType : String
@@ -64,6 +63,10 @@ type alias ButtleModel =
   , actor : ActorModel
   }
 
+type alias IndexModel =
+  { status : ButtleModel
+  , todos : List Task
+  }
 
 type alias Model =
   { page : Page
@@ -100,13 +103,12 @@ initButtleModel =
 
 initTodoModel : List Task
 initTodoModel =
-  [ ]
+  []
 
 
 initTask : Task
 initTask =
-  { id = 0
-  , checked = False
+  { checked = False
   , task = ""
   , project = "" 
   , taskType = ""
@@ -124,9 +126,9 @@ initModel navigationKey =
 
 
 init : Encode.Value -> Url -> Navigation.Key -> (Model, Cmd Msg)
-init flags url navigationKey = 
-  case Decode.decodeValue statusDecoder flags of
-    Ok model -> setButtleModel model navigationKey 
+init flags url navigationKey =
+  case Debug.log "hoge" ( Decode.decodeValue indexDecoder flags ) of
+    Ok model -> setNewModel model navigationKey 
                 |> setNewPage (Routes.match url)
     Err _ -> setNewPage (Routes.match url) (initModel navigationKey)
 
@@ -137,6 +139,7 @@ type Msg
   | NewRoute (Maybe Routes.Route)
   | Visit UrlRequest
   | AddToTask Task
+  | DeleteTask Task
   | NewTask String
 
 attackToEnemy : ButtleModel -> ButtleModel
@@ -198,12 +201,13 @@ judgeLevelUp model =
       {oldActorModel | levelFlag = False }
     }
 
-setButtleModel : ButtleModel -> Navigation.Key -> Model
-setButtleModel buttleModel navigationKey =
+setNewModel : IndexModel -> Navigation.Key -> Model
+setNewModel indexModel navigationKey =
   let
-    newModel = initModel navigationKey 
+    newModel = initModel navigationKey
+
   in
-    { newModel | buttle = buttleModel }
+    { newModel | buttle = indexModel.status, taskList = List.reverse <| indexModel.todos }
 
 
 setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
@@ -216,6 +220,9 @@ setNewPage maybeRoute model =
     Nothing ->
       ( { model | page = NotFound }, Cmd.none )
 
+deleteTask : Model -> Task -> List Task
+deleteTask model task =
+  (Debug.log "delete" List.filter (\t -> t /= task ) model.taskList)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -227,9 +234,11 @@ update msg model =
         (Visit (Browser.Internal url), _) ->
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
-          ({ model | taskList = (List.append model.taskList [task]), task = initTask}, Cmd.none)
+          ({ model | taskList = (List.append [task] model.taskList ), task = initTask}, Cmd.none)
         (NewTask task, _) ->
           ({ model | task = { initTask | task = task} }, Cmd.none)
+        (DeleteTask task, _) ->
+          ( {model | taskList = deleteTask model task}, Cmd.none)
         _ ->
           (model, Cmd.none)
 
@@ -260,13 +269,15 @@ viewTodoList model =
   div []
     (List.map viewTodo model)
 
-viewTodo : Task -> Html msg
+viewTodo : Task -> Html Msg
 viewTodo todo =
   div []
       [
-        input [name "toggle", type_ "checkbox"] [ ]
-      , label [for "toggle"] [ text todo.task ]
+        input [id ("todo" ++ todo.task), name "toggle", type_ "checkbox" ] [ ]
+      , label [for ("todo" ++ todo.task)] [ text todo.task ]
+      , label [ onClick (DeleteTask todo) ] [ text " [X]" ]
       ]
+
 
 viewInput : String -> Html Msg
 viewInput task =
@@ -343,18 +354,6 @@ view model =
 port setStatusStorage : Encode.Value -> Cmd msg
 port setTasksStorage : Encode.Value -> Cmd msg
 
-updateTodoStorage : Msg -> Model -> ( Model, Cmd Msg )
-updateTodoStorage msg oldModel =
-  let
-    ( newModel, cmds ) = update msg oldModel
-  in
-    case msg of
-      AddToTask _ ->
-        ( newModel
-        , Cmd.batch [ setTasksStorage (taskEncoder newModel), cmds]
-        )
-      _ ->
-        ( newModel, cmds)
 
 updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
@@ -362,7 +361,7 @@ updateWithStorage msg oldModel =
     ( newModel, cmds ) = update msg oldModel
   in
     case msg of
-      NewTask task ->
+      NewTask _ ->
         ( newModel
         , Cmd.batch [ setTasksStorage (taskEncoder newModel), cmds]
         )
@@ -398,13 +397,11 @@ statusEncoder model =
 taskEncoder : Model -> Encode.Value
 taskEncoder model =
   Encode.object
-    [ ("id", Encode.int model.task.id)
-    , ("checked", Encode.bool model.task.checked)
+    [ ("checked", Encode.bool model.task.checked)
     , ("task", Encode.string model.task.task)
     , ("project", Encode.string model.task.project)
     , ("taskType", Encode.string model.task.taskType)
     ]
-
 
   --   type alias Task =
   -- { id : Int
@@ -440,9 +437,14 @@ statusDecoder =
 taskDecoder : Decode.Decoder Task
 taskDecoder =
   Decode.succeed Task
-    |> required "id" Decode.int
     |> required "checked" Decode.bool
     |> required "task" Decode.string
     |> required "project" Decode.string
     |> required "taskType" Decode.string
+
+indexDecoder : Decode.Decoder IndexModel
+indexDecoder =
+  Decode.succeed IndexModel
+    |> required "status" statusDecoder
+    |> required "todos" (Decode.list taskDecoder)
 
