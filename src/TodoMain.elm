@@ -38,7 +38,8 @@ type Page
   | NotFound
 
 type alias Task =
-  { checked : Bool
+  { id : Int
+  , checked : Bool
   , task : String
   , project : String
   , taskType : String
@@ -108,7 +109,8 @@ initTodoModel =
 
 initTask : Task
 initTask =
-  { checked = False
+  { id = 0
+  , checked = False
   , task = ""
   , project = "" 
   , taskType = ""
@@ -127,7 +129,7 @@ initModel navigationKey =
 
 init : Encode.Value -> Url -> Navigation.Key -> (Model, Cmd Msg)
 init flags url navigationKey =
-  case Debug.log "hoge" ( Decode.decodeValue indexDecoder flags ) of
+  case Decode.decodeValue indexDecoder flags of
     Ok model -> setNewModel model navigationKey 
                 |> setNewPage (Routes.match url)
     Err _ -> setNewPage (Routes.match url) (initModel navigationKey)
@@ -437,6 +439,7 @@ statusDecoder =
 taskDecoder : Decode.Decoder Task
 taskDecoder =
   Decode.succeed Task
+    |> required "id" Decode.int
     |> required "checked" Decode.bool
     |> required "task" Decode.string
     |> required "project" Decode.string

@@ -47,8 +47,10 @@ function openDB() {
       todo: "++id, task"
     });
 
+
   }
   db.open();
+
 }
 
 async function setStatusToDB(state) {
@@ -68,7 +70,6 @@ async function getStatusFromDB () {
 
 async function setTasksToDB(state) {
   openDB();
-  console.log(state);
   await db.todo.put(state);
   db.close();
 }
