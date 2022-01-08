@@ -65,8 +65,8 @@ type alias ButtleModel =
   }
 
 type alias IndexModel =
-  { status : ButtleModel
-  , todos : List Task
+  { status : Maybe ButtleModel
+  , todos : Maybe (List Task)
   }
 
 type alias Model =
@@ -207,9 +207,21 @@ setNewModel : IndexModel -> Navigation.Key -> Model
 setNewModel indexModel navigationKey =
   let
     newModel = initModel navigationKey
+    iButtleModel =
+      case indexModel.status of
+        Just s ->
+          s
+        Nothing ->
+          newModel.buttle
 
+    iTodoModel =
+      case indexModel.todos of
+        Just t ->
+          t
+        Nothing ->
+          newModel.taskList
   in
-    { newModel | buttle = indexModel.status, taskList = List.reverse <| indexModel.todos }
+    { newModel | buttle = iButtleModel, taskList = List.reverse <| iTodoModel }
 
 
 setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
@@ -356,6 +368,7 @@ view model =
 port setStatusStorage : Encode.Value -> Cmd msg
 port setTasksStorage : Encode.Value -> Cmd msg
 
+port deleteTaskFromDb : Encode.Value -> Cmd msg
 
 updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
@@ -365,44 +378,47 @@ updateWithStorage msg oldModel =
     case msg of
       NewTask _ ->
         ( newModel
-        , Cmd.batch [ setTasksStorage (taskEncoder newModel), cmds]
+        , Cmd.batch [ setTasksStorage (taskEncoder newModel.task), cmds]
         )
       AttackToEnemy ->
         ( newModel
-        , Cmd.batch [ setStatusStorage (statusEncoder newModel), cmds]
+        , Cmd.batch [ setStatusStorage (statusEncoder newModel.buttle), cmds]
         )
+      DeleteTask task ->
+        ( newModel
+        , Cmd.batch [ deleteTaskFromDb (taskEncoder task) , cmds] )
       _ ->
         ( newModel, cmds )
 
 -- JSON ENCODE/DECODE
 -- Buttle
-statusEncoder : Model -> Encode.Value
-statusEncoder model =
+statusEncoder : ButtleModel -> Encode.Value
+statusEncoder buttle =
   Encode.object
     [ ("enemy", Encode.object 
-        [ ("id", Encode.int model.buttle.enemy.id)
-        , ("enemyHp", Encode.int model.buttle.enemy.enemyHp)
-        , ("lastEnemyHp", Encode.int model.buttle.enemy.lastEnemyHp)
+        [ ("id", Encode.int buttle.enemy.id)
+        , ("enemyHp", Encode.int buttle.enemy.enemyHp)
+        , ("lastEnemyHp", Encode.int buttle.enemy.lastEnemyHp)
         ]
       )
     , ("actor", Encode.object 
-        [ ("id", Encode.int model.buttle.actor.id)
-        , ("exp", Encode.int model.buttle.actor.exp)
-        , ("level", Encode.int model.buttle.actor.level)
-        , ("levelFlag", Encode.bool model.buttle.actor.levelFlag)
-        , ("point", Encode.int model.buttle.actor.point)
-        , ("attack", Encode.int model.buttle.actor.attack)
+        [ ("id", Encode.int buttle.actor.id)
+        , ("exp", Encode.int buttle.actor.exp)
+        , ("level", Encode.int buttle.actor.level)
+        , ("levelFlag", Encode.bool buttle.actor.levelFlag)
+        , ("point", Encode.int buttle.actor.point)
+        , ("attack", Encode.int buttle.actor.attack)
         ]
       )
     ]
 
-taskEncoder : Model -> Encode.Value
-taskEncoder model =
+taskEncoder : Task -> Encode.Value
+taskEncoder task =
   Encode.object
-    [ ("checked", Encode.bool model.task.checked)
-    , ("task", Encode.string model.task.task)
-    , ("project", Encode.string model.task.project)
-    , ("taskType", Encode.string model.task.taskType)
+    [ ("checked", Encode.bool task.checked)
+    , ("task", Encode.string task.task)
+    , ("project", Encode.string task.project)
+    , ("taskType", Encode.string task.taskType)
     ]
 
   --   type alias Task =
@@ -447,7 +463,6 @@ taskDecoder =
 
 indexDecoder : Decode.Decoder IndexModel
 indexDecoder =
-  Decode.succeed IndexModel
-    |> required "status" statusDecoder
-    |> required "todos" (Decode.list taskDecoder)
-
+ Decode.map2 IndexModel
+   (Decode.field "status" <| Decode.nullable statusDecoder)
+   (Decode.field "todos" <| Decode.nullable (Decode.list taskDecoder))

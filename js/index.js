@@ -8,11 +8,17 @@ async function main() {
   const statusData = await getStatusFromDB();
   const todoData = await getTasksFromDB();
 
-  console.log({"status" : statusData, "todos" : todoData});
+  console.log(todoData);
+  console.log({
+    "status": statusData.actor || statusData.enemy ? statusData : null, 
+    "todos" : JSON.stringify(todoData) != "[]" ? todoData : null 
+    });
 
-  const flag = JSON.stringify({"status": statusData, 
-                "todos" : todoData
-                })
+
+  const flag = JSON.stringify({
+    "status": statusData.actor && statusData.enemy ? statusData : null, 
+    "todos" : JSON.stringify(todoData) != "[]" ? todoData : null 
+    })
 
   console.log(flag);
 
@@ -25,11 +31,15 @@ async function main() {
   
   app.ports.setStatusStorage.subscribe(function(state) {
     setStatusToDB(state);
-  })
+  });
 
   app.ports.setTasksStorage.subscribe(function(state) {
     setTasksToDB(state);
-  })
+  });
+
+  app.ports.deleteTaskFromDb.subscribe(function(state) {
+    //TODO: タスクをけす処理の実装をする
+  });
 
 
 }
@@ -79,6 +89,14 @@ async function getTasksFromDB () {
   const taskData = await db.todo.toArray();
   db.close;
   return taskData;
+}
+
+async function deleteTaskFromDb (state) {
+  openDB();
+  console.log(state)
+  //TODO: task.idがうまく入ってこない
+  console.log(await db.todo.where("id").equals(task.id).delete());
+  db.close;
 }
 
 main();
