@@ -8,8 +8,8 @@ import Url exposing (Url)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
-import Html exposing ( Html, div, text, h1, a, input, label, button, label )
-import Html.Attributes exposing ( id, class, type_, name, for, value )
+import Html exposing ( Html, div, text, h1, a, input, label, button, label, select, option )
+import Html.Attributes exposing ( id, class, type_, name, for, value, selected )
 import Html.Attributes exposing (placeholder)
 import Html.Attributes exposing (autofocus)
 import Html.Events exposing ( .. )
@@ -19,6 +19,7 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import Time as T
 import Task as Ts
+import Html.Attributes exposing (selected)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -46,6 +47,13 @@ type alias Task =
   , project : String
   , taskType : String
   }
+
+project : List String
+project =
+  [ "次の行動"
+  , "連絡待ち"
+  , "待機"
+  ]
 
 type alias EnemyModel =
   { id : Int
@@ -112,11 +120,17 @@ initTodoModel =
 
 initTask : Task
 initTask =
+  let
+    firstProject = 
+      case (List.head project) of
+        Just p -> p
+        Nothing -> ""   
+  in
   { id = 0
   , checked = False
   , task = ""
-  , project = "" 
-  , taskType = ""
+  , project = firstProject
+  , taskType = "" 
   }
 
 
@@ -148,6 +162,7 @@ type Msg
   | DeleteTask Task
   | NewTask String
   | Tick T.Posix
+  | ChangeProject String
 
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
@@ -262,11 +277,19 @@ update msg model =
           in
           ( { model | taskList = (List.append [ newTask ] model.taskList ), task = newTask}, Cmd.none)
         (NewTask task, _) ->
-          ( { model | task = { initTask | task = task} }, getNewId )
+          let
+            oldModel = Debug.log "task: " model.task
+          in
+          ( { model | task = { oldModel | task = task} }, getNewId )
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
         (Tick time, _) ->
           ( {model | uid = Debug.log "time" (T.posixToMillis time)}, Cmd.none )
+        (ChangeProject p, _) ->
+          let
+            oldModel = Debug.log "project:" model.task
+          in
+          ( {model | task = { oldModel | project = p}}, Cmd.none )
         _ ->
           (model, Cmd.none)
 
@@ -312,6 +335,21 @@ viewTodo todo =
       , label [ onClick (DeleteTask todo) ] [ text " [X]" ]
       ]
 
+viewSelectProject : Html Msg
+viewSelectProject =
+  div []
+      [ select
+          [ type_ "select"
+          ,  onChange ChangeProject
+          ]
+          
+            (List.map viewProjectList project)
+          
+      ]
+
+viewProjectList : String -> Html Msg
+viewProjectList str =
+  option [] [ text str ]
 
 viewInput : String -> Html Msg
 viewInput task =
@@ -325,6 +363,7 @@ viewInput task =
           , onChange NewTask
           ]
           []
+      , viewSelectProject
       ]
 
 viewAddTodo : Task -> Html Msg
@@ -341,7 +380,7 @@ viewContent model =
       , div [] 
             [ h1 [] [text "Todo List"]
             , viewInput model.task.task
-            , viewAddTodo { initTask | task = model.task.task }
+            , viewAddTodo model.task
             , viewTodoList model.taskList
             ]
       )
@@ -398,7 +437,7 @@ updateWithStorage msg oldModel =
   in
     case msg of
       AddToTask _ ->
-        ( {newModel | task = initTask }
+        ( {newModel | task = {newTask | task = ""} }
         , Cmd.batch [ setTasksStorage (taskEncoder newTask), cmds]
         )
       AttackToEnemy ->

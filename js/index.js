@@ -38,7 +38,7 @@ async function main() {
   });
 
   app.ports.deleteTaskFromDb.subscribe(function(state) {
-    //TODO: タスクをけす処理の実装をする
+    deleteTaskFromDb(state);
   });
 
 
@@ -93,9 +93,7 @@ async function getTasksFromDB () {
 
 async function deleteTaskFromDb (state) {
   openDB();
-  console.log(state)
-  //TODO: task.idがうまく入ってこない
-  console.log(await db.todo.where("id").equals(task.id).delete());
+  await db.todo.where("id").equals(state.id).delete();
   db.close;
 }
 
