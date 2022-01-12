@@ -26,7 +26,7 @@ attackToEnemyTests =
       { enemy = enemyStatus
       , actor = actorStatus
       }
-
+    
     initTodoModel =
       [ 
         { id = 0

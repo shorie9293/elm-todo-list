@@ -17,6 +17,8 @@ import Html.Events.Extra exposing ( onChange )
 import Json.Decode as Decode
 import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
+import Time as T
+import Task as Ts
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -24,7 +26,7 @@ main = Browser.application
   { init = init
   , view = view
   , update = updateWithStorage
-  , subscriptions = \_ -> Sub.none
+  , subscriptions = subscriptions
   , onUrlRequest = Visit
   , onUrlChange = Routes.match >> NewRoute
   }
@@ -75,6 +77,7 @@ type alias Model =
   , buttle : ButtleModel
   , taskList : List Task
   , task : Task
+  , uid : Int
   }
 
 
@@ -124,6 +127,7 @@ initModel navigationKey =
   , buttle = initButtleModel
   , taskList = initTodoModel
   , task = initTask
+  , uid = 0
   }
 
 
@@ -143,6 +147,7 @@ type Msg
   | AddToTask Task
   | DeleteTask Task
   | NewTask String
+  | Tick T.Posix
 
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
@@ -234,6 +239,10 @@ setNewPage maybeRoute model =
     Nothing ->
       ( { model | page = NotFound }, Cmd.none )
 
+getNewId : Cmd Msg
+getNewId =
+  Ts.perform Tick T.now
+
 deleteTask : Model -> Task -> List Task
 deleteTask model task =
   (Debug.log "delete" List.filter (\t -> t /= task ) model.taskList)
@@ -248,13 +257,24 @@ update msg model =
         (Visit (Browser.Internal url), _) ->
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
-          ({ model | taskList = (List.append [task] model.taskList ), task = initTask}, Cmd.none)
+          let
+            newTask = {task | id = model.uid}
+          in
+          ( { model | taskList = (List.append [ newTask ] model.taskList ), task = newTask}, Cmd.none)
         (NewTask task, _) ->
-          ({ model | task = { initTask | task = task} }, Cmd.none)
+          ( { model | task = { initTask | task = task} }, getNewId )
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
+        (Tick time, _) ->
+          ( {model | uid = Debug.log "time" (T.posixToMillis time)}, Cmd.none )
         _ ->
           (model, Cmd.none)
+
+-- SUBSCRIPTIONS
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+  Sub.none
 
 -- VIEW
 
@@ -374,11 +394,12 @@ updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
   let
     ( newModel, cmds ) = update msg oldModel
+    newTask = newModel.task
   in
     case msg of
-      NewTask _ ->
-        ( newModel
-        , Cmd.batch [ setTasksStorage (taskEncoder newModel.task), cmds]
+      AddToTask _ ->
+        ( {newModel | task = initTask }
+        , Cmd.batch [ setTasksStorage (taskEncoder newTask), cmds]
         )
       AttackToEnemy ->
         ( newModel
@@ -415,7 +436,8 @@ statusEncoder buttle =
 taskEncoder : Task -> Encode.Value
 taskEncoder task =
   Encode.object
-    [ ("checked", Encode.bool task.checked)
+    [ ("id", Encode.int task.id)
+    , ("checked", Encode.bool task.checked)
     , ("task", Encode.string task.task)
     , ("project", Encode.string task.project)
     , ("taskType", Encode.string task.taskType)

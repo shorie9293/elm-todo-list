@@ -54,7 +54,7 @@ function openDB() {
     db.version(1).stores({
       enemy: "id",
       actor: "id",
-      todo: "++id, task"
+      todo: "id, task"
     });
 
 
