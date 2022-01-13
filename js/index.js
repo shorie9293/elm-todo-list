@@ -8,19 +8,10 @@ async function main() {
   const statusData = await getStatusFromDB();
   const todoData = await getTasksFromDB();
 
-  console.log(todoData);
-  console.log({
-    "status": statusData.actor || statusData.enemy ? statusData : null, 
-    "todos" : JSON.stringify(todoData) != "[]" ? todoData : null 
-    });
-
-
   const flag = JSON.stringify({
     "status": statusData.actor && statusData.enemy ? statusData : null, 
     "todos" : JSON.stringify(todoData) != "[]" ? todoData : null 
     })
-
-  console.log(flag);
 
   const flags = flag ? JSON.parse(flag) : null
   
@@ -39,6 +30,10 @@ async function main() {
 
   app.ports.deleteTaskFromDb.subscribe(function(state) {
     deleteTaskFromDb(state);
+  });
+
+  app.ports.changeCheckedDB.subscribe(function(state) {
+    changeCheck(state);
   });
 
 
@@ -94,6 +89,12 @@ async function getTasksFromDB () {
 async function deleteTaskFromDb (state) {
   openDB();
   await db.todo.where("id").equals(state.id).delete();
+  db.close;
+}
+
+async function changeCheck (state) {
+  openDB();
+  await db.todo.where("id").equals(state.id).modify({checked : !state.checked});
   db.close;
 }
 

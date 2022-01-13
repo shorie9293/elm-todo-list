@@ -12,6 +12,7 @@ import Html exposing ( Html, div, text, h1, a, input, label, button, label, sele
 import Html.Attributes exposing ( id, class, type_, name, for, value, selected )
 import Html.Attributes exposing (placeholder)
 import Html.Attributes exposing (autofocus)
+import Html.Attributes exposing (checked)
 import Html.Events exposing ( .. )
 import Html.Events.Extra exposing ( onChange )
 import Json.Decode as Decode
@@ -19,12 +20,13 @@ import Json.Decode.Pipeline exposing (required)
 import Json.Encode as Encode
 import Time as T
 import Task as Ts
-import Html.Attributes exposing (selected)
+import UUID exposing (UUID)
+import Random
 
 -- MAIN
 main : Program Encode.Value Model Msg
 main = Browser.application
-  { init = init
+  { init = Debug.log "init" init
   , view = view
   , update = updateWithStorage
   , subscriptions = subscriptions
@@ -41,7 +43,8 @@ type Page
   | NotFound
 
 type alias Task =
-  { id : Int
+  { id : String
+  , date : Int
   , checked : Bool
   , task : String
   , project : String
@@ -85,7 +88,8 @@ type alias Model =
   , buttle : ButtleModel
   , taskList : List Task
   , task : Task
-  , uid : Int
+  , uid : String
+  , date : Int
   }
 
 
@@ -126,7 +130,8 @@ initTask =
         Just p -> p
         Nothing -> ""   
   in
-  { id = 0
+  { id =""
+  , date = 0
   , checked = False
   , task = ""
   , project = firstProject
@@ -141,7 +146,8 @@ initModel navigationKey =
   , buttle = initButtleModel
   , taskList = initTodoModel
   , task = initTask
-  , uid = 0
+  , uid = ""
+  , date = 0
   }
 
 
@@ -161,9 +167,10 @@ type Msg
   | AddToTask Task
   | DeleteTask Task
   | NewTask String
-  | Tick T.Posix
   | ChangeProject String
-
+  | Tick T.Posix
+  | NewId UUID
+  | ChangeChecked Task
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
   reduceEnemyHp model
@@ -241,7 +248,7 @@ setNewModel indexModel navigationKey =
         Nothing ->
           newModel.taskList
   in
-    { newModel | buttle = iButtleModel, taskList = List.reverse <| iTodoModel }
+    { newModel | buttle = iButtleModel, taskList = List.sortBy .date iTodoModel |> List.reverse}
 
 
 setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
@@ -256,11 +263,22 @@ setNewPage maybeRoute model =
 
 getNewId : Cmd Msg
 getNewId =
+  Random.generate NewId UUID.generator
+
+getDate : Cmd Msg
+getDate =
   Ts.perform Tick T.now
 
 deleteTask : Model -> Task -> List Task
 deleteTask model task =
   (Debug.log "delete" List.filter (\t -> t /= task ) model.taskList)
+
+updateChecked : String -> Task -> Task
+updateChecked id task =
+  if task.id == id then
+    { task | checked = not task.checked}
+  else
+    task
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -273,25 +291,32 @@ update msg model =
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
           let
-            newTask = {task | id = model.uid}
+            newTask = {task | id = model.uid, date = model.date}
           in
-          ( { model | taskList = (List.append [ newTask ] model.taskList ), task = newTask}, Cmd.none)
+          if newTask.id /= "" then
+            ( { model | taskList = (List.append [ newTask ] model.taskList ), task = newTask}, Cmd.none)
+          else
+            ( model, Cmd.none )
         (NewTask task, _) ->
           let
             oldModel = Debug.log "task: " model.task
           in
-          ( { model | task = { oldModel | task = task} }, getNewId )
+          ( { model | task = { oldModel | task = task} }, Cmd.batch [getNewId, getDate] )
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
         (Tick time, _) ->
-          ( {model | uid = Debug.log "time" (T.posixToMillis time)}, Cmd.none )
+          ({ model | date = T.posixToMillis time}, Cmd.none)
         (ChangeProject p, _) ->
           let
             oldModel = Debug.log "project:" model.task
           in
           ( {model | task = { oldModel | project = p}}, Cmd.none )
+        (NewId uuid, _) ->
+          ( { model | uid = UUID.toString uuid }, Cmd.none )
+        (ChangeChecked task, _) ->
+          ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
         _ ->
-          (model, Cmd.none)
+          Debug.todo "予定外の値が来ていますよ"
 
 -- SUBSCRIPTIONS
 
@@ -329,8 +354,11 @@ viewTodoList model =
 viewTodo : Task -> Html Msg
 viewTodo todo =
   div []
-      [
-        input [id ("todo" ++ todo.task), name "toggle", type_ "checkbox" ] [ ]
+      [ input [id ("todo" ++ todo.task)
+              , name "toggle"
+              , type_ "checkbox"
+              , checked todo.checked
+              , onClick (ChangeChecked todo) ] [ ]
       , label [for ("todo" ++ todo.task)] [ text todo.task ]
       , label [ onClick (DeleteTask todo) ] [ text " [X]" ]
       ]
@@ -426,20 +454,24 @@ view model =
 
 port setStatusStorage : Encode.Value -> Cmd msg
 port setTasksStorage : Encode.Value -> Cmd msg
-
 port deleteTaskFromDb : Encode.Value -> Cmd msg
+port changeCheckedDB : Encode.Value -> Cmd msg
 
 updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
   let
     ( newModel, cmds ) = update msg oldModel
-    newTask = newModel.task
+    newTask = 
+      newModel.task
   in
     case msg of
       AddToTask _ ->
-        ( {newModel | task = {newTask | task = ""} }
-        , Cmd.batch [ setTasksStorage (taskEncoder newTask), cmds]
-        )
+        if newTask.id /= "" then
+          ( {newModel | task = {newTask | task = ""} }
+          , Cmd.batch [ setTasksStorage (taskEncoder newTask), cmds]
+          )
+        else
+          ( {newModel | task = {newTask | task = ""} }, cmds)
       AttackToEnemy ->
         ( newModel
         , Cmd.batch [ setStatusStorage (statusEncoder newModel.buttle), cmds]
@@ -447,6 +479,9 @@ updateWithStorage msg oldModel =
       DeleteTask task ->
         ( newModel
         , Cmd.batch [ deleteTaskFromDb (taskEncoder task) , cmds] )
+      ChangeChecked task ->
+        ( newModel
+        , Cmd.batch [ changeCheckedDB (taskEncoder task), cmds] )
       _ ->
         ( newModel, cmds )
 
@@ -475,20 +510,15 @@ statusEncoder buttle =
 taskEncoder : Task -> Encode.Value
 taskEncoder task =
   Encode.object
-    [ ("id", Encode.int task.id)
+    [ ("id", Encode.string task.id)
+    , ("date", Encode.int task.date)
     , ("checked", Encode.bool task.checked)
     , ("task", Encode.string task.task)
     , ("project", Encode.string task.project)
     , ("taskType", Encode.string task.taskType)
     ]
 
-  --   type alias Task =
-  -- { id : Int
-  -- , checked : Bool
-  -- , task : String
-  -- , project : String
-  -- , taskType : String
-  -- }
+
 statusEnemyDecoder : Decode.Decoder EnemyModel
 statusEnemyDecoder =
   Decode.succeed EnemyModel
@@ -516,7 +546,8 @@ statusDecoder =
 taskDecoder : Decode.Decoder Task
 taskDecoder =
   Decode.succeed Task
-    |> required "id" Decode.int
+    |> required "id" Decode.string
+    |> required "date" Decode.int
     |> required "checked" Decode.bool
     |> required "task" Decode.string
     |> required "project" Decode.string
