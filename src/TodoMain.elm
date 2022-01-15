@@ -359,7 +359,7 @@ viewTodo todo =
               , type_ "checkbox"
               , checked todo.checked
               , onClick (ChangeChecked todo) ] [ ]
-      , label [for ("todo" ++ todo.task)] [ text todo.task ]
+      , label [for ("todo" ++ todo.task)] [ text todo.task, text todo.project ]
       , label [ onClick (DeleteTask todo) ] [ text " [X]" ]
       ]
 
@@ -367,12 +367,9 @@ viewSelectProject : Html Msg
 viewSelectProject =
   div []
       [ select
-          [ type_ "select"
-          ,  onChange ChangeProject
-          ]
+        [ onChange ChangeProject ]
           
-            (List.map viewProjectList project)
-          
+        (List.map viewProjectList project)
       ]
 
 viewProjectList : String -> Html Msg
