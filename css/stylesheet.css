@@ -1,4 +1,37 @@
-.todo-text {
-  font-size: large;
-  color: blue;
+.todo {
+  width: auto;
+  height: auto;
+  padding: 0.5em 0.2em 0.5em 0.2em;
+  margin: 0.5em;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 6px;
+  background-color: aliceblue;
 }
+
+.todo--mainrow {
+  width: auto;
+  height: auto;
+  margin-bottom: 0.1em;
+}
+
+.todo--task {
+  font-size: larger;
+}
+
+.todo--subrow {
+  display: flex;
+  width: auto;
+}
+
+.todo--property {
+  width: 6em;
+  height:1.6em;
+  text-align: center;
+  padding-top: auto;
+  padding-bottom: auto;
+  margin: 0.1em 0.5em;
+  background-color: greenyellow;
+  border-radius: 6px;
+}
+

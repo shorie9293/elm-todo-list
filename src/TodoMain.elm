@@ -8,8 +8,8 @@ import Url exposing (Url)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
-import Html exposing ( Html, div, text, h1, a, input, label, button, label, select, option )
-import Html.Attributes exposing ( id, class, type_, name, for, value, selected )
+import Html exposing ( Html, div, text, h1, a, input, label, button, label, select, option, span )
+import Html.Attributes exposing ( id, class, type_, name, for, value )
 import Html.Attributes exposing (placeholder)
 import Html.Attributes exposing (autofocus)
 import Html.Attributes exposing (checked)
@@ -53,6 +53,13 @@ type alias Task =
 
 project : List String
 project =
+  [ "メイン"
+  , "サブ"
+  , "繰り返し"
+  ]
+
+tasktypes : List String
+tasktypes =
   [ "次の行動"
   , "連絡待ち"
   , "待機"
@@ -129,13 +136,17 @@ initTask =
       case (List.head project) of
         Just p -> p
         Nothing -> ""   
+    firstTaskType = 
+      case (List.head tasktypes) of
+        Just t -> t
+        Nothing -> ""   
   in
   { id =""
   , date = 0
   , checked = False
   , task = ""
   , project = firstProject
-  , taskType = "" 
+  , taskType = firstTaskType
   }
 
 
@@ -168,9 +179,11 @@ type Msg
   | DeleteTask Task
   | NewTask String
   | ChangeProject String
+  | ChangeTaskType String
   | Tick T.Posix
   | NewId UUID
   | ChangeChecked Task
+
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
   reduceEnemyHp model
@@ -308,9 +321,14 @@ update msg model =
           ({ model | date = T.posixToMillis time}, Cmd.none)
         (ChangeProject p, _) ->
           let
-            oldModel = Debug.log "project:" model.task
+            oldModel = model.task
           in
           ( {model | task = { oldModel | project = p}}, Cmd.none )
+        (ChangeTaskType tasktype, _) ->
+          let
+            oldModel = model.task
+          in
+          ( {model | task = { oldModel | taskType = tasktype}}, Cmd.none )
         (NewId uuid, _) ->
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
@@ -353,14 +371,19 @@ viewTodoList model =
 
 viewTodo : Task -> Html Msg
 viewTodo todo =
-  div []
-      [ input [id ("todo" ++ todo.task)
+  div [class "todo"]
+      [ div [ class "todo--mainrow"] 
+            [ input [id ("todo" ++ todo.task)
               , name "toggle"
               , type_ "checkbox"
               , checked todo.checked
-              , onClick (ChangeChecked todo) ] [ ]
-      , label [for ("todo" ++ todo.task)] [ text todo.task, text todo.project ]
-      , label [ onClick (DeleteTask todo) ] [ text " [X]" ]
+              , onClick (ChangeChecked todo)
+              , class "todo--checkbox" ] [ ]
+              , label [for ("todo" ++ todo.task), class "todo--task"] [ text todo.task ]
+              , label [ onClick (DeleteTask todo), class "todo--delete" ] [ text " [X]" ]
+            ]
+      , div [ class "todo--subrow"]
+            [ div [class "todo--property"] [span [] [text todo.project] ], div [class "todo--property"] [ span [] [text todo.taskType]] ]
       ]
 
 viewSelectProject : Html Msg
@@ -368,12 +391,23 @@ viewSelectProject =
   div []
       [ select
         [ onChange ChangeProject ]
-          
         (List.map viewProjectList project)
       ]
 
 viewProjectList : String -> Html Msg
 viewProjectList str =
+  option [] [ text str ]
+
+viewSelectTaskType : Html Msg
+viewSelectTaskType =
+  div []
+      [ select
+        [ onChange ChangeTaskType ]
+        (List.map viewProjectList tasktypes)
+      ]
+
+viewTaskType : String -> Html Msg
+viewTaskType str =
   option [] [ text str ]
 
 viewInput : String -> Html Msg
@@ -389,6 +423,7 @@ viewInput task =
           ]
           []
       , viewSelectProject
+      , viewSelectTaskType
       ]
 
 viewAddTodo : Task -> Html Msg
