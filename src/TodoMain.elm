@@ -2,8 +2,7 @@ port module TodoMain exposing ( main
                           , initTodoModel
                           , reduceEnemyHp
                           , encountNextEnemy
-                          , judgeLevelUp
-                          , onCtrEnter )
+                          , judgeLevelUp)
 import Routes
 import Url exposing (Url)
 
@@ -20,7 +19,6 @@ import Time as T
 import Task as Ts
 import UUID exposing (UUID)
 import Random
-import Html.Events.Extra exposing (onEnter)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -176,13 +174,15 @@ type Msg
   | Visit UrlRequest
   | AddToTask Task
   | DeleteTask Task
-  | NewTask String
-  | ChangeProject String
-  | ChangeTaskType String
+  | UpdateTask Task
   | Tick T.Posix
   | NewId UUID
   | ChangeChecked Task
-  | OnKeyPressCtrlEnter String
+
+type InputType
+  = Project
+  | TaskType
+  | TaskName
 
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
@@ -293,6 +293,17 @@ updateChecked id task =
   else
     task
 
+updateTask : Task -> InputType -> String -> Msg
+updateTask task msg newTask
+  = case msg of
+    TaskName ->
+      UpdateTask {task | task = newTask}
+    Project ->
+      UpdateTask {task | project = newTask}
+    TaskType ->
+      UpdateTask {task | taskType = newTask}
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case (msg, model.page) of
@@ -310,35 +321,16 @@ update msg model =
             ( { model | taskList = (List.append [ newTask ] model.taskList ), task = newTask}, Cmd.none)
           else
             ( model, Cmd.none )
-        (NewTask task, _) ->
-          let
-            oldModel = model.task
-          in
-          ( { model | task = { oldModel | task = task} }, Cmd.batch [getNewId, getDate] )
+        (UpdateTask task, _) ->
+          ( { model | task = task }, Cmd.batch [getNewId, getDate] )
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
         (Tick time, _) ->
           ({ model | date = T.posixToMillis time}, Cmd.none)
-        (ChangeProject p, _) ->
-          let
-            oldModel = model.task
-          in
-          ( {model | task = { oldModel | project = p}}, Cmd.none )
-        (ChangeTaskType tasktype, _) ->
-          let
-            oldModel = model.task
-          in
-          ( {model | task = { oldModel | taskType = tasktype}}, Cmd.none )
         (NewId uuid, _) ->
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
           ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
-        (OnKeyPressCtrlEnter task, _) ->
-          let
-            oldModel = model.task
-            newModel = { model | task = { oldModel | task = task} }
-          in
-          ( newModel, Cmd.batch [getNewId, getDate] )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -392,11 +384,12 @@ viewTodo todo =
             [ div [class "todo--property"] [span [] [text todo.project] ], div [class "todo--property"] [ span [] [text todo.taskType]] ]
       ]
 
-viewSelectProject : Html Msg
-viewSelectProject =
+
+viewSelectProject : Task -> Html Msg
+viewSelectProject task =
   div []
       [ select
-        [ onChange ChangeProject ]
+        [ onChange (updateTask task Project)]
         (List.map viewProjectList project)
       ]
 
@@ -404,29 +397,31 @@ viewProjectList : String -> Html Msg
 viewProjectList str =
   option [] [ text str ]
 
-viewSelectTaskType : Html Msg
-viewSelectTaskType =
+viewSelectTaskType : Task -> Html Msg
+viewSelectTaskType task =
   div []
       [ select
-        [ onChange ChangeTaskType ]
+        [ onChange (updateTask task TaskType) ]
         (List.map viewProjectList tasktypes)
       ]
 
-viewInput : String -> Html Msg
+
+
+viewInput : Task -> Html Msg
 viewInput task =
   div []
       [ input
           [ type_ "text"
           , placeholder "やること"
           , autofocus True
-          , value task
+          , value task.task
           , name "newTodo"
-          , onChange NewTask
-          , onCtrEnter (OnKeyPressCtrlEnter task)
+          , onChange (updateTask task TaskName)
+          -- , onCtrEnter (AddToTask task)
           ]
           []
-      , viewSelectProject
-      , viewSelectTaskType
+      , viewSelectProject task
+      , viewSelectTaskType task
       ]
 
 viewAddTodo : Task -> Html Msg
@@ -442,7 +437,7 @@ viewContent model =
       ( "Todo List"
       , div [] 
             [ h1 [] [text "Todo List"]
-            , viewInput model.task.task
+            , viewInput model.task
             , viewAddTodo model.task
             , viewTodoList model.taskList
             ]
@@ -597,20 +592,20 @@ indexDecoder =
 -- DECODE: Click Events
 
 
-onCtrEnter :  msg -> Attribute msg
-onCtrEnter msg =
-  let
-    ctrlKey =
-      Decode.field "ctrlKey" Decode.bool
-    decoder =
-      Decode.map2 Tuple.pair keyCode ctrlKey
-        |> Decode.andThen
-          ( \x ->
-            case x of
-              (13, True) ->
-                Decode.succeed msg
-              (_, _) ->
-                Decode.fail "failed"
-          )
-  in
-  on "keydown" decoder
+-- onCtrEnter :  msg -> Attribute msg
+-- onCtrEnter msg =
+--   let
+--     ctrlKey =
+--       Decode.field "ctrlKey" Decode.bool
+--     decoder =
+--       Decode.map2 Tuple.pair keyCode ctrlKey
+--         |> Decode.andThen
+--           ( \x ->
+--             case x of
+--               (13, True) ->
+--                 Decode.succeed msg
+--               (_, _) ->
+--                 Decode.fail "failed"
+--           )
+--   in
+--   on "keydown" decoder

@@ -4,8 +4,7 @@ import TodoMain exposing (
     initTodoModel
   , reduceEnemyHp
   , encountNextEnemy
-  , judgeLevelUp
-  , onCtrEnter)
+  , judgeLevelUp)
 import Routes as R exposing (Route(..), routeToUrl)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
