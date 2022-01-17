@@ -1,6 +1,11 @@
 module StatusTests exposing (attackToEnemyTests)
 
-import TodoMain exposing (initTodoModel, reduceEnemyHp, encountNextEnemy, judgeLevelUp)
+import TodoMain exposing (
+    initTodoModel
+  , reduceEnemyHp
+  , encountNextEnemy
+  , judgeLevelUp
+  , onCtrEnter)
 import Routes as R exposing (Route(..), routeToUrl)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
@@ -72,5 +77,12 @@ attackToEnemyTests =
             |> Expect.equal initTodoModel
 
       ]
+  -- , describe "Event"
+  --     [ test "Ctrl+Enterを押したときにmessage(string)を返す" <|
+  --         \_ ->
+  --           onCtrEnter "test"
+  --           |> Expect.equal "clicked on Ctr Enter button"
+
+  --     ]
 
   ]

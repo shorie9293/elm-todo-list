@@ -2,31 +2,30 @@ port module TodoMain exposing ( main
                           , initTodoModel
                           , reduceEnemyHp
                           , encountNextEnemy
-                          , judgeLevelUp )
+                          , judgeLevelUp
+                          , onCtrEnter )
 import Routes
 import Url exposing (Url)
 
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
-import Html exposing ( Html, div, text, h1, a, input, label, button, label, select, option, span )
-import Html.Attributes exposing ( id, class, type_, name, for, value )
-import Html.Attributes exposing (placeholder)
-import Html.Attributes exposing (autofocus)
-import Html.Attributes exposing (checked)
+import Html exposing ( .. )
+import Html.Attributes exposing ( .. )
 import Html.Events exposing ( .. )
 import Html.Events.Extra exposing ( onChange )
 import Json.Decode as Decode
-import Json.Decode.Pipeline exposing (required)
+import Json.Decode.Pipeline as DP
 import Json.Encode as Encode
 import Time as T
 import Task as Ts
 import UUID exposing (UUID)
 import Random
+import Html.Events.Extra exposing (onEnter)
 
 -- MAIN
 main : Program Encode.Value Model Msg
 main = Browser.application
-  { init = Debug.log "init" init
+  { init = init
   , view = view
   , update = updateWithStorage
   , subscriptions = subscriptions
@@ -183,6 +182,7 @@ type Msg
   | Tick T.Posix
   | NewId UUID
   | ChangeChecked Task
+  | OnKeyPressCtrlEnter String
 
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
@@ -312,7 +312,7 @@ update msg model =
             ( model, Cmd.none )
         (NewTask task, _) ->
           let
-            oldModel = Debug.log "task: " model.task
+            oldModel = model.task
           in
           ( { model | task = { oldModel | task = task} }, Cmd.batch [getNewId, getDate] )
         (DeleteTask task, _) ->
@@ -333,6 +333,12 @@ update msg model =
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
           ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
+        (OnKeyPressCtrlEnter task, _) ->
+          let
+            oldModel = model.task
+            newModel = { model | task = { oldModel | task = task} }
+          in
+          ( newModel, Cmd.batch [getNewId, getDate] )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -406,10 +412,6 @@ viewSelectTaskType =
         (List.map viewProjectList tasktypes)
       ]
 
-viewTaskType : String -> Html Msg
-viewTaskType str =
-  option [] [ text str ]
-
 viewInput : String -> Html Msg
 viewInput task =
   div []
@@ -420,6 +422,7 @@ viewInput task =
           , value task
           , name "newTodo"
           , onChange NewTask
+          , onCtrEnter (OnKeyPressCtrlEnter task)
           ]
           []
       , viewSelectProject
@@ -554,19 +557,19 @@ taskEncoder task =
 statusEnemyDecoder : Decode.Decoder EnemyModel
 statusEnemyDecoder =
   Decode.succeed EnemyModel
-    |> required "id" Decode.int
-    |> required "enemyHp" Decode.int
-    |> required "lastEnemyHp" Decode.int
+    |> DP.required "id" Decode.int
+    |> DP.required "enemyHp" Decode.int
+    |> DP.required "lastEnemyHp" Decode.int
 
 statusActorDecoder : Decode.Decoder ActorModel
 statusActorDecoder =
   Decode.succeed ActorModel
-    |> required "id" Decode.int
-    |> required "exp" Decode.int
-    |> required "level" Decode.int
-    |> required "levelFlag" Decode.bool
-    |> required "point" Decode.int
-    |> required "attack" Decode.int
+    |> DP.required "id" Decode.int
+    |> DP.required "exp" Decode.int
+    |> DP.required "level" Decode.int
+    |> DP.required "levelFlag" Decode.bool
+    |> DP.required "point" Decode.int
+    |> DP.required "attack" Decode.int
 
 statusDecoder : Decode.Decoder ButtleModel
 statusDecoder =
@@ -578,15 +581,36 @@ statusDecoder =
 taskDecoder : Decode.Decoder Task
 taskDecoder =
   Decode.succeed Task
-    |> required "id" Decode.string
-    |> required "date" Decode.int
-    |> required "checked" Decode.bool
-    |> required "task" Decode.string
-    |> required "project" Decode.string
-    |> required "taskType" Decode.string
+    |> DP.required "id" Decode.string
+    |> DP.required "date" Decode.int
+    |> DP.required "checked" Decode.bool
+    |> DP.required "task" Decode.string
+    |> DP.required "project" Decode.string
+    |> DP.required "taskType" Decode.string
 
 indexDecoder : Decode.Decoder IndexModel
 indexDecoder =
  Decode.map2 IndexModel
    (Decode.field "status" <| Decode.nullable statusDecoder)
    (Decode.field "todos" <| Decode.nullable (Decode.list taskDecoder))
+
+-- DECODE: Click Events
+
+
+onCtrEnter :  msg -> Attribute msg
+onCtrEnter msg =
+  let
+    ctrlKey =
+      Decode.field "ctrlKey" Decode.bool
+    decoder =
+      Decode.map2 Tuple.pair keyCode ctrlKey
+        |> Decode.andThen
+          ( \x ->
+            case x of
+              (13, True) ->
+                Decode.succeed msg
+              (_, _) ->
+                Decode.fail "failed"
+          )
+  in
+  on "keydown" decoder

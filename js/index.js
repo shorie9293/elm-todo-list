@@ -35,8 +35,6 @@ async function main() {
   app.ports.changeCheckedDB.subscribe(function(state) {
     changeCheck(state);
   });
-
-
 }
 
 let db;
