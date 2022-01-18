@@ -9,6 +9,7 @@ import Url exposing (Url)
 import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Navigation
 import Html exposing ( .. )
+import Html.Lazy exposing (lazy)
 import Html.Attributes exposing ( .. )
 import Html.Events exposing ( .. )
 import Html.Events.Extra exposing ( onChange )
@@ -19,6 +20,7 @@ import Time as T
 import Task as Ts
 import UUID exposing (UUID)
 import Random
+import Browser.Events exposing (Visibility)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -284,7 +286,7 @@ getDate =
 
 deleteTask : Model -> Task -> List Task
 deleteTask model task =
-  (Debug.log "delete" List.filter (\t -> t /= task ) model.taskList)
+  List.filter (\t -> t /= task ) model.taskList
 
 updateChecked : String -> Task -> Task
 updateChecked id task =
@@ -332,7 +334,8 @@ update msg model =
         (ChangeChecked task, _) ->
           ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
         _ ->
-          Debug.todo "予定外の値が来ていますよ"
+          (model, Cmd.none)
+          -- Debug.todo "予定外の値が来ていますよ"
 
 -- SUBSCRIPTIONS
 
@@ -437,9 +440,11 @@ viewContent model =
       ( "Todo List"
       , div [] 
             [ h1 [] [text "Todo List"]
-            , viewInput model.task
-            , viewAddTodo model.task
-            , viewTodoList model.taskList
+            , lazy viewInput model.task
+            , lazy viewAddTodo model.task
+            , lazy viewTodoList model.taskList
+            , div [class "image-fish", hidden True] []
+            , div [class "botton--floating"] []
             ]
       )
     Buttle ->
@@ -447,8 +452,8 @@ viewContent model =
       , div []
             [ h1 [] [text "Buttle Field"]
             , div [] 
-                  [ viewEnemy model.buttle.enemy
-                  , viewActor model.buttle.actor 
+                  [ lazy viewEnemy model.buttle.enemy
+                  , lazy viewActor model.buttle.actor 
                   ]
             ]
       )
