@@ -35,6 +35,34 @@
   border-radius: 6px;
 }
 
+.todo--input--none {
+  display: none;
+}
+
+.todo--inputbox--cover {
+  /* display: none; */
+  position: fixed;
+  display: flex;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100%;
+  background: rgba(100, 100, 100, 0.8);
+  z-index: 100000;
+
+}
+
+.todo--inputbox {
+  position: relative;
+  background: lightgoldenrodyellow;
+  margin: auto;
+  width: 250px;
+  height: auto;
+  padding: 5px;
+  border-radius: 10px;
+  text-align: left; 
+}
+
 .image-fish {
   background-image: url(../imgs/fish_maguro2.png);
   background-repeat: no-repeat;
@@ -42,7 +70,7 @@
   height: 400px;
 }
 
-.botton--floating {
+.button--floating {
   position: absolute;
   display: table-cell;
   bottom: 10px;

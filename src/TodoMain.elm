@@ -20,7 +20,6 @@ import Time as T
 import Task as Ts
 import UUID exposing (UUID)
 import Random
-import Browser.Events exposing (Visibility)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -96,6 +95,7 @@ type alias Model =
   , task : Task
   , uid : String
   , date : Int
+  , inputWindowViewVisibility : Bool
   }
 
 
@@ -158,6 +158,7 @@ initModel navigationKey =
   , task = initTask
   , uid = ""
   , date = 0
+  , inputWindowViewVisibility = False
   }
 
 
@@ -180,6 +181,7 @@ type Msg
   | Tick T.Posix
   | NewId UUID
   | ChangeChecked Task
+  | ShowInputWindow Bool
 
 type InputType
   = Project
@@ -320,7 +322,11 @@ update msg model =
             newTask = {task | id = model.uid, date = model.date}
           in
           if newTask.id /= "" then
-            ( { model | taskList = (List.append [ newTask ] model.taskList ), task = newTask}, Cmd.none)
+            ( { model | 
+                  taskList = (List.append [ newTask ] model.taskList )
+                , task = newTask
+                , inputWindowViewVisibility = False}
+              , Cmd.none)
           else
             ( model, Cmd.none )
         (UpdateTask task, _) ->
@@ -333,9 +339,10 @@ update msg model =
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
           ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
+        (ShowInputWindow show, _) ->
+          ( { model | inputWindowViewVisibility = not show}, Cmd.none  )
         _ ->
-          (model, Cmd.none)
-          -- Debug.todo "予定外の値が来ていますよ"
+          Debug.todo "予定外の値が来ていますよ"
 
 -- SUBSCRIPTIONS
 
@@ -409,10 +416,9 @@ viewSelectTaskType task =
       ]
 
 
-
 viewInput : Task -> Html Msg
 viewInput task =
-  div []
+  div [ class "todo--input--taskinfo" ]
       [ input
           [ type_ "text"
           , placeholder "やること"
@@ -432,6 +438,40 @@ viewAddTodo task =
   button [ onClick (AddToTask task) ]
         [ text "Add Task"]
 
+viewCancelTodo : Model -> Html Msg
+viewCancelTodo model =
+  button [ onClick (ShowInputWindow model.inputWindowViewVisibility) ]
+        [ text "Cancel"]
+
+
+viewInputWindow : Model -> Html Msg
+viewInputWindow model =
+  let 
+    todoInputWindow =
+      if model.inputWindowViewVisibility then
+        "todo--inputbox--cover"
+      else
+        "todo--inputbox--none"
+    repeatTask =
+      if model.task.project == "繰り返し" then
+        True
+      else
+        False
+  in
+  div [ class todoInputWindow ] 
+      [ div [class "todo--inputbox", hidden (not model.inputWindowViewVisibility)]
+            [
+              viewInput model.task
+            , div [hidden (not repeatTask)] [text "repeat"]
+            , viewAddTodo model.task
+            , viewCancelTodo model
+            ]
+      ]
+
+viewFloatButton : Model -> Html Msg
+viewFloatButton model =
+  div [class "button--floating", onClick (ShowInputWindow model.inputWindowViewVisibility)]
+      []
 
 viewContent : Model -> ( String, Html Msg )
 viewContent model =
@@ -440,11 +480,10 @@ viewContent model =
       ( "Todo List"
       , div [] 
             [ h1 [] [text "Todo List"]
-            , lazy viewInput model.task
-            , lazy viewAddTodo model.task
+            , viewInputWindow model
             , lazy viewTodoList model.taskList
             , div [class "image-fish", hidden True] []
-            , div [class "botton--floating"] []
+            , lazy viewFloatButton model
             ]
       )
     Buttle ->
