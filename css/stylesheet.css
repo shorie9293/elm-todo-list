@@ -1,6 +1,18 @@
-.todo {
+.todo--list {
   width: auto;
-  height: auto;
+  height: 21em;
+  scroll-behavior: smooth;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  background: rgba(201, 231, 231, 0.6);
+  border-radius: 5px;
+  box-shadow: 2px 2px rgba(0,0,0,0.1);
+}
+
+.todo--box--single {
+  width: auto;
+  height: 3.5em;
+  display: flex;
   padding: 0.5em 0.2em 0.5em 0.2em;
   margin: 0.5em;
   border-width: 1px;
@@ -17,6 +29,7 @@
 
 .todo--task {
   font-size: larger;
+  padding-left: 0.5em;
 }
 
 .todo--subrow {
@@ -63,6 +76,22 @@
   text-align: left; 
 }
 
+.todo--checked {
+  background-image: url(../imgs/todo-checked.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 3em;
+  height: 3em;
+}
+
+.todo--nochecked {
+  background-image: url(../imgs/todo-nochecked.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 3em;
+  height: 3em;
+}
+
 .image-fish {
   background-image: url(../imgs/fish_maguro2.png);
   background-repeat: no-repeat;
@@ -84,5 +113,4 @@
   text-align: center;
   vertical-align: middle;
   z-index: 10000;
-
 }

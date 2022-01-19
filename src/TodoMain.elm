@@ -374,47 +374,61 @@ viewActor actorModel =
 
 viewTodoList : List Task -> Html Msg
 viewTodoList model =
-  div []
+  div [ class "todo--list" ]
     (List.map viewTodo model)
 
 viewTodo : Task -> Html Msg
 viewTodo todo =
-  div [class "todo"]
-      [ div [ class "todo--mainrow"] 
-            [ input [id ("todo" ++ todo.task)
-              , name "toggle"
-              , type_ "checkbox"
-              , checked todo.checked
-              , onClick (ChangeChecked todo)
-              , class "todo--checkbox" ] [ ]
-              , label [for ("todo" ++ todo.task), class "todo--task"] [ text todo.task ]
-              , label [ onClick (DeleteTask todo), class "todo--delete" ] [ text " [X]" ]
-            ]
-      , div [ class "todo--subrow"]
-            [ div [class "todo--property"] [span [] [text todo.project] ], div [class "todo--property"] [ span [] [text todo.taskType]] ]
+  let
+    todoChecked =
+      if todo.checked then
+        "todo--checked"
+      else
+        "todo--nochecked" 
+  in
+  div [class "todo--box--single"]
+      [ div [ class todoChecked, onClick (ChangeChecked todo) ] [ text ""]
+      , input [id ("todo" ++ todo.task)
+        , name "toggle"
+        , type_ "checkbox"
+        , checked todo.checked
+        , onClick (ChangeChecked todo)
+        , class "todo--checkbox"
+        , hidden True ] [ ]
+        , div [ class "todo--container--information"]
+              [ label [for ("todo" ++ todo.task), class "todo--task"] [ text todo.task ]
+              , div [ class "todo--subrow"]
+              [ div [ class "todo--property"] 
+                    [ text todo.project ]
+              , div [class "todo--property"]
+                    [ text todo.taskType]
+               ]
+
+        ] 
+      ,  label [ onClick (DeleteTask todo), class "todo--delete" ] [ text " [X]" ]      
       ]
 
+-- VIEW : TodoInputWindow
+
+viewListOption : String -> Html Msg
+viewListOption str =
+  option [] [ text str ]
 
 viewSelectProject : Task -> Html Msg
 viewSelectProject task =
   div []
       [ select
         [ onChange (updateTask task Project)]
-        (List.map viewProjectList project)
+        (List.map viewListOption project)
       ]
-
-viewProjectList : String -> Html Msg
-viewProjectList str =
-  option [] [ text str ]
 
 viewSelectTaskType : Task -> Html Msg
 viewSelectTaskType task =
   div []
       [ select
         [ onChange (updateTask task TaskType) ]
-        (List.map viewProjectList tasktypes)
+        (List.map viewListOption tasktypes)
       ]
-
 
 viewInput : Task -> Html Msg
 viewInput task =
@@ -468,10 +482,14 @@ viewInputWindow model =
             ]
       ]
 
+-- VIEW : FLOAT BUTTON
+
 viewFloatButton : Model -> Html Msg
 viewFloatButton model =
   div [class "button--floating", onClick (ShowInputWindow model.inputWindowViewVisibility)]
       []
+
+-- VIEW : CONTAINTS
 
 viewContent : Model -> ( String, Html Msg )
 viewContent model =
@@ -502,6 +520,9 @@ viewContent model =
             [ h1 [] [text "Page Not Found!!"] ]
       )
 
+
+-- VIEW : HEADER
+
 viewHeader : Html Msg
 viewHeader =
   div []
@@ -513,6 +534,8 @@ viewHeader =
              ]
       ]
 
+-- VIEW : TOTAL
+
 view : Model -> Document Msg
 view model =
   let
@@ -523,6 +546,8 @@ view model =
     body = 
       [ viewHeader, content ]
   }
+
+-- VIEW : END
 
 -- PORT
 
