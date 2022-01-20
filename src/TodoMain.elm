@@ -496,7 +496,7 @@ viewContent model =
   case model.page of
     Todo ->
       ( "Todo List"
-      , div [] 
+      , div [class "todo--page"] 
             [ h1 [] [text "Todo List"]
             , viewInputWindow model
             , lazy viewTodoList model.taskList
@@ -521,10 +521,20 @@ viewContent model =
       )
 
 
--- VIEW : HEADER
+-- VIEW : HEADER, FOOTER
 
 viewHeader : Html Msg
 viewHeader =
+  div []
+      [ div []
+            [ a [ Routes.href Routes.Todo]
+                [ text "todo |"]
+            , a [ Routes.href Routes.Buttle]
+                [ text " buttle"]
+             ]
+      ]
+viewFooter : Html Msg
+viewFooter =
   div []
       [ div []
             [ a [ Routes.href Routes.Todo]
@@ -544,7 +554,7 @@ view model =
   in
   { title = title,
     body = 
-      [ viewHeader, content ]
+      [ div [class "wrap"] [viewHeader, content, viewFooter] ]
   }
 
 -- VIEW : END

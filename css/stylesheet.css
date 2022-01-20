@@ -1,6 +1,32 @@
+html {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+}
+
+.wrap {
+  margin: 0;
+  background-color: burlywood;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo--page {
+  height: 100%;
+  background-color: beige;
+  display: flex;
+  flex-direction: column;
+}
+
 .todo--list {
+  display: block;
+  flex-grow: 1;
   width: auto;
-  height: 21em;
   scroll-behavior: smooth;
   overflow-y: scroll;
   overflow-x: hidden;
@@ -11,7 +37,7 @@
 
 .todo--box--single {
   width: auto;
-  height: 3.5em;
+  height: auto;
   display: flex;
   padding: 0.5em 0.2em 0.5em 0.2em;
   margin: 0.5em;
@@ -21,19 +47,52 @@
   background-color: aliceblue;
 }
 
+.todo--checked {
+  display: flex;
+  background-image: url(../imgs/todo-checked.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 3em;
+  height: 3em;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.todo--nochecked {
+  display: flex;
+  background-image: url(../imgs/todo-nochecked.png);
+  background-size: cover;
+  background-repeat: no-repeat;
+  width: 3em;
+  height: 3em;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.todo--container--information {
+  display: block;
+  background-color: ;
+  margin: 0.1em;
+  width: 80%;
+  height: auto;
+}
+
 .todo--mainrow {
+  display: flex;
   width: auto;
   height: auto;
   margin-bottom: 0.1em;
 }
 
 .todo--task {
+  display: flex;
   font-size: larger;
   padding-left: 0.5em;
 }
 
 .todo--subrow {
   display: flex;
+  text-align: center;
   width: auto;
 }
 
@@ -41,11 +100,11 @@
   width: 6em;
   height:1.6em;
   text-align: center;
-  padding-top: auto;
-  padding-bottom: auto;
+  display: inline;
+  padding: auto;
   margin: 0.1em 0.5em;
   background-color: greenyellow;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .todo--input--none {
@@ -74,29 +133,6 @@
   padding: 5px;
   border-radius: 10px;
   text-align: left; 
-}
-
-.todo--checked {
-  background-image: url(../imgs/todo-checked.png);
-  background-size: cover;
-  background-repeat: no-repeat;
-  width: 3em;
-  height: 3em;
-}
-
-.todo--nochecked {
-  background-image: url(../imgs/todo-nochecked.png);
-  background-size: cover;
-  background-repeat: no-repeat;
-  width: 3em;
-  height: 3em;
-}
-
-.image-fish {
-  background-image: url(../imgs/fish_maguro2.png);
-  background-repeat: no-repeat;
-  width: auto;
-  height: 400px;
 }
 
 .button--floating {
