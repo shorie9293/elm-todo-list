@@ -96,6 +96,7 @@ type alias Model =
   , uid : String
   , date : Int
   , inputWindowViewVisibility : Bool
+  , selectedProject : String
   }
 
 
@@ -151,6 +152,13 @@ initTask =
 
 initModel : Navigation.Key -> Model
 initModel navigationKey =
+  let
+    initProject =
+      case List.head project of
+        Just p -> p
+        Nothing -> "Not Found" 
+
+  in
   { page = NotFound
   , navigationKey = navigationKey
   , buttle = initButtleModel
@@ -159,6 +167,7 @@ initModel navigationKey =
   , uid = ""
   , date = 0
   , inputWindowViewVisibility = False
+  , selectedProject = initProject
   }
 
 
@@ -182,6 +191,7 @@ type Msg
   | NewId UUID
   | ChangeChecked Task
   | ShowInputWindow Bool
+  | SelectProjectTab String
 
 type InputType
   = Project
@@ -341,6 +351,8 @@ update msg model =
           ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
         (ShowInputWindow show, _) ->
           ( { model | inputWindowViewVisibility = not show}, Cmd.none  )
+        (SelectProjectTab p, _) ->
+           ( { model | selectedProject = p}, Cmd.none  )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -372,22 +384,23 @@ viewActor actorModel =
       , button [onClick AttackToEnemy] [ text "Attack" ]        
       ]
 
-viewTodoList : List Task -> Html Msg
+viewTodoList : Model -> Html Msg
 viewTodoList model =
   div [ class "todo--list" ]
-    (List.map viewTodo model)
+    (List.map viewTodo (List.filter (\x -> x.project == model.selectedProject) model.taskList))
 
 viewTodo : Task -> Html Msg
-viewTodo todo =
+viewTodo todo=
   let
     todoChecked =
       if todo.checked then
         "todo--checked"
       else
-        "todo--nochecked" 
+        "todo--nochecked"
   in
   div [class "todo--box--single"]
-      [ div [ class todoChecked, onClick (ChangeChecked todo) ] [ text ""]
+      [ span [ class "todo--space"] [text ""]
+      , span [ class todoChecked, onClick (ChangeChecked todo) ] [ text ""]
       , input [id ("todo" ++ todo.task)
         , name "toggle"
         , type_ "checkbox"
@@ -499,7 +512,7 @@ viewContent model =
       , div [class "todo--page"] 
             [ h1 [] [text "Todo List"]
             , viewInputWindow model
-            , lazy viewTodoList model.taskList
+            , lazy viewTodoList model
             , div [class "image-fish", hidden True] []
             , lazy viewFloatButton model
             ]
@@ -533,6 +546,12 @@ viewHeader =
                 [ text " buttle"]
              ]
       ]
+
+viewTodoFooter : Model -> Html Msg
+viewTodoFooter model =
+  div [class "todo--footer"]
+      (List.map (\x -> div [ onClick (SelectProjectTab x)] [text x]) project)
+
 viewFooter : Html Msg
 viewFooter =
   div []
@@ -554,7 +573,7 @@ view model =
   in
   { title = title,
     body = 
-      [ div [class "wrap"] [viewHeader, content, viewFooter] ]
+      [ div [class "wrap"] [viewHeader, content, viewTodoFooter model, viewFooter] ]
   }
 
 -- VIEW : END
