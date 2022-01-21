@@ -1,17 +1,17 @@
 html {
   margin: 0;
-  height: 100%;
+  height: 100vh;
 }
 
 body {
   margin: 0;
-  height: 100%;
+  height: 100vh;
 }
 
 .wrap {
   margin: 0;
   background-color: burlywood;
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -26,9 +26,10 @@ body {
 .todo--list {
   display: block;
   flex-grow: 1;
+  height: 0;
   width: auto;
   scroll-behavior: smooth;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   background: rgba(201, 231, 231, 0.6);
   border-radius: 10px;
