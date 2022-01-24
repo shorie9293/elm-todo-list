@@ -470,6 +470,19 @@ viewCancelTodo model =
   button [ onClick (ShowInputWindow model.inputWindowViewVisibility) ]
         [ text "Cancel"]
 
+viewRepeatFrequency : Model -> Html Msg
+viewRepeatFrequency model =
+  let
+    repeatTask =
+      if model.task.project == "繰り返し" then
+        True
+      else
+        False
+    weekday = 
+      ["月", "火", "水", "木", "金", "土", "日" ]
+  in
+  div [ hidden (not repeatTask) ]
+      (List.map (\x -> div[][input [type_ "checkbox"] [], label[][text x]]) weekday)
 
 viewInputWindow : Model -> Html Msg
 viewInputWindow model =
@@ -479,17 +492,12 @@ viewInputWindow model =
         "todo--inputbox--cover"
       else
         "todo--inputbox--none"
-    repeatTask =
-      if model.task.project == "繰り返し" then
-        True
-      else
-        False
   in
   div [ class todoInputWindow ] 
       [ div [class "todo--inputbox", hidden (not model.inputWindowViewVisibility)]
             [
               viewInput model.task
-            , div [hidden (not repeatTask)] [text "repeat"]
+            , viewRepeatFrequency model
             , viewAddTodo model.task
             , viewCancelTodo model
             ]
