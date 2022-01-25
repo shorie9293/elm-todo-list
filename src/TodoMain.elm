@@ -367,6 +367,7 @@ update msg model =
           ( { model | inputWindowViewVisibility = not show}, Cmd.none  )
         (SelectProjectTab p, _) ->
           ( { model | selectedProject = p}, Cmd.none  )
+        -- TODO: ここなおす！！
         (SelectRepeatType typeRep, _) ->
           let
             oldTask = model.task
@@ -375,7 +376,7 @@ update msg model =
             Weekly d ->
               ( {model | task = { oldTask | repeatedDay = Debug.log "day" (List.append [d] model.task.repeatedDay)}}, Cmd.none )
             Monthly m ->
-              ( {model | task = { oldTask | repeatedDate = Debug.log "date" (List.append [m] model.task.repeatedDay)}}, Cmd.none )
+              ( {model | task = { oldTask | repeatedDate = Debug.log "date" (List.append [m] model.task.repeatedDate)}}, Cmd.none )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -511,7 +512,7 @@ viewRepeatFrequency model =
       , viewRepeatTime model
       ]
 
--- TODO: ここなおす！！
+
 viewRepeatTime : Model -> Html Msg
 viewRepeatTime model =
   let
@@ -537,9 +538,9 @@ viewRepeatTime model =
     repeatedTime =
       case model.task.repeatTask of
         "Weekly" ->
-          List.map (makeList (Monthly model.task.repeatTask)) monthday
+          List.map (\x -> makeList (Weekly x) x) weekday
         "Monthly" ->
-          List.map (makeList (Monthly model.task.repeatTask)) monthday
+          List.map (\x -> makeList (Monthly x) x) monthday
         "-" ->
           []
         _ ->
