@@ -198,7 +198,7 @@ type Msg
   | ChangeChecked Task
   | ShowInputWindow Bool
   | SelectProjectTab String
-  | SelectRepeatType TaskRepeatType
+  | SelectRepeatType TaskRepeatType Bool
 
 type InputType
   = Project
@@ -367,16 +367,27 @@ update msg model =
           ( { model | inputWindowViewVisibility = not show}, Cmd.none  )
         (SelectProjectTab p, _) ->
           ( { model | selectedProject = p}, Cmd.none  )
-        -- TODO: ここなおす！！
-        (SelectRepeatType typeRep, _) ->
+        (SelectRepeatType typeRep checked, _) ->
           let
             oldTask = model.task
+            oldList =
+              case typeRep of
+                Weekly d ->
+                  (model.task.repeatedDay, d)
+                Monthly m ->
+                  (model.task.repeatedDate, m)
+
+            repList =
+              if checked then
+                List.filter (\x -> x /= (Tuple.second oldList)) (Tuple.first oldList) 
+              else
+                List.append [Tuple.second oldList] (Tuple.first oldList)
           in
           case typeRep of
-            Weekly d ->
-              ( {model | task = { oldTask | repeatedDay = Debug.log "day" (List.append [d] model.task.repeatedDay)}}, Cmd.none )
-            Monthly m ->
-              ( {model | task = { oldTask | repeatedDate = Debug.log "date" (List.append [m] model.task.repeatedDate)}}, Cmd.none )
+            Weekly _ ->
+              ( {model | task = { oldTask | repeatedDay = Debug.log "day" repList}}, Cmd.none )
+            Monthly _ ->
+              ( {model | task = { oldTask | repeatedDate = Debug.log "date" repList}}, Cmd.none )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -524,11 +535,20 @@ viewRepeatTime model =
 
     makeList : TaskRepeatType -> String -> Html Msg
     makeList taskRepType str =
+      let
+        checkedBox =
+          case taskRepType of
+            Weekly w 
+              -> Debug.log "day" (List.member w model.task.repeatedDay)
+            Monthly m
+              -> Debug.log "date" (List.member m model.task.repeatedDate)
+      in
       div [ id ("todo" ++ str)]
           [ input [ type_ "checkbox"
                   , value str
                   , for ("todo" ++ str)
-                  , onClick (SelectRepeatType taskRepType)
+                  , checked checkedBox
+                  , onClick (SelectRepeatType taskRepType checkedBox)
                   ] []
           , label [] [text str]
           ]
@@ -657,6 +677,7 @@ port setStatusStorage : Encode.Value -> Cmd msg
 port setTasksStorage : Encode.Value -> Cmd msg
 port deleteTaskFromDb : Encode.Value -> Cmd msg
 port changeCheckedDB : Encode.Value -> Cmd msg
+port setLoginDate : Encode.Value -> Cmd msg
 
 updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
