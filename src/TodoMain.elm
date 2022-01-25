@@ -47,6 +47,9 @@ type alias Task =
   , task : String
   , project : String
   , taskType : String
+  , repeatTask : String
+  , repeatedDay : List String
+  , repeatedDate : List String
   }
 
 project : List String
@@ -147,6 +150,9 @@ initTask =
   , task = ""
   , project = firstProject
   , taskType = firstTaskType
+  , repeatTask = "-"
+  , repeatedDay = [""]
+  , repeatedDate = [""]
   }
 
 
@@ -192,11 +198,17 @@ type Msg
   | ChangeChecked Task
   | ShowInputWindow Bool
   | SelectProjectTab String
+  | SelectRepeatType TaskRepeatType
 
 type InputType
   = Project
   | TaskType
   | TaskName
+  | RepeatTask
+
+type TaskRepeatType
+  = Weekly String
+  | Monthly String
 
 attackToEnemy : ButtleModel -> ButtleModel
 attackToEnemy model =
@@ -316,6 +328,8 @@ updateTask task msg newTask
       UpdateTask {task | project = newTask}
     TaskType ->
       UpdateTask {task | taskType = newTask}
+    RepeatTask ->
+      UpdateTask {task | repeatTask = newTask}
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -352,7 +366,16 @@ update msg model =
         (ShowInputWindow show, _) ->
           ( { model | inputWindowViewVisibility = not show}, Cmd.none  )
         (SelectProjectTab p, _) ->
-           ( { model | selectedProject = p}, Cmd.none  )
+          ( { model | selectedProject = p}, Cmd.none  )
+        (SelectRepeatType typeRep, _) ->
+          let
+            oldTask = model.task
+          in
+          case typeRep of
+            Weekly d ->
+              ( {model | task = { oldTask | repeatedDay = Debug.log "day" (List.append [d] model.task.repeatedDay)}}, Cmd.none )
+            Monthly m ->
+              ( {model | task = { oldTask | repeatedDate = Debug.log "date" (List.append [m] model.task.repeatedDay)}}, Cmd.none )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -463,12 +486,12 @@ viewInput task =
 viewAddTodo : Task -> Html Msg
 viewAddTodo task =
   button [ onClick (AddToTask task) ]
-        [ text "Add Task"]
+         [ text "Add Task"]
 
 viewCancelTodo : Model -> Html Msg
 viewCancelTodo model =
   button [ onClick (ShowInputWindow model.inputWindowViewVisibility) ]
-        [ text "Cancel"]
+         [ text "Cancel"]
 
 viewRepeatFrequency : Model -> Html Msg
 viewRepeatFrequency model =
@@ -478,11 +501,52 @@ viewRepeatFrequency model =
         True
       else
         False
-    weekday = 
-      ["月", "火", "水", "木", "金", "土", "日" ]
+    repeatedFrequency = 
+      ["-", "Weekly", "Monthly"]
   in
   div [ hidden (not repeatTask) ]
-      (List.map (\x -> div[][input [type_ "checkbox"] [], label[][text x]]) weekday)
+      [ select 
+        [ onChange (updateTask model.task RepeatTask) ]
+        (List.map viewListOption repeatedFrequency)
+      , viewRepeatTime model
+      ]
+
+-- TODO: ここなおす！！
+viewRepeatTime : Model -> Html Msg
+viewRepeatTime model =
+  let
+    weekday = 
+      ["月", "火", "水", "木", "金", "土", "日" ]
+
+    monthday =
+      ["1", "5", "10", "15", "20", "25", "月末"]
+
+    makeList : TaskRepeatType -> String -> Html Msg
+    makeList taskRepType str =
+      div [ id ("todo" ++ str)]
+          [ input [ type_ "checkbox"
+                  , value str
+                  , for ("todo" ++ str)
+                  , onClick (SelectRepeatType taskRepType)
+                  ] []
+          , label [] [text str]
+          ]
+
+
+    repeatedTime : List (Html Msg)
+    repeatedTime =
+      case model.task.repeatTask of
+        "Weekly" ->
+          List.map (makeList (Monthly model.task.repeatTask)) monthday
+        "Monthly" ->
+          List.map (makeList (Monthly model.task.repeatTask)) monthday
+        "-" ->
+          []
+        _ ->
+          []
+  in
+  div []
+      repeatedTime
 
 viewInputWindow : Model -> Html Msg
 viewInputWindow model =
@@ -652,6 +716,9 @@ taskEncoder task =
     , ("task", Encode.string task.task)
     , ("project", Encode.string task.project)
     , ("taskType", Encode.string task.taskType)
+    , ("repeatTask", Encode.string task.repeatTask)
+    , ("repeatedDay", Encode.list Encode.string task.repeatedDay)
+    , ("repeatedDate", Encode.list Encode.string task.repeatedDate)
     ]
 
 
@@ -688,6 +755,9 @@ taskDecoder =
     |> DP.required "task" Decode.string
     |> DP.required "project" Decode.string
     |> DP.required "taskType" Decode.string
+    |> DP.required "repeatTask" Decode.string
+    |> DP.required "repeatedDay" (Decode.list Decode.string)
+    |> DP.required "repeatedDate" (Decode.list Decode.string)
 
 indexDecoder : Decode.Decoder IndexModel
 indexDecoder =

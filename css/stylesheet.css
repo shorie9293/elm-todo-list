@@ -25,7 +25,6 @@ body {
 
 .todo--list {
   display: block;
-  height: 0;
   flex-grow: 1;
   height: 0;
   width: auto;
