@@ -136,7 +136,7 @@ initTask : Task
 initTask =
   let
     firstProject = 
-      case (List.head project) of
+      case Debug.log "initTask" (List.head project) of
         Just p -> p
         Nothing -> ""   
     firstTaskType = 
@@ -343,6 +343,8 @@ update msg model =
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
           let
+            b = Debug.log "task length" (List.length task.repeatedDay)
+            a = Debug.log "task length" (List.length task.repeatedDate)
             newTask = {task | id = model.uid, date = model.date}
           in
           if newTask.id /= "" then
@@ -364,7 +366,7 @@ update msg model =
         (ChangeChecked task, _) ->
           ( { model | taskList = List.map (updateChecked task.id) model.taskList }, Cmd.none )
         (ShowInputWindow show, _) ->
-          ( { model | inputWindowViewVisibility = not show}, Cmd.none  )
+          ( { model | task = initTask, inputWindowViewVisibility = not show}, Cmd.none  )
         (SelectProjectTab p, _) ->
           ( { model | selectedProject = p}, Cmd.none  )
         (SelectRepeatType typeRep checked, _) ->
@@ -385,9 +387,9 @@ update msg model =
           in
           case typeRep of
             Weekly _ ->
-              ( {model | task = { oldTask | repeatedDay = Debug.log "day" repList}}, Cmd.none )
+              ( {model | task = { oldTask | repeatedDay = repList}}, Cmd.none )
             Monthly _ ->
-              ( {model | task = { oldTask | repeatedDate = Debug.log "date" repList}}, Cmd.none )
+              ( {model | task = { oldTask | repeatedDate = repList}}, Cmd.none )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -462,12 +464,14 @@ viewListOption : String -> Html Msg
 viewListOption str =
   option [] [ text str ]
 
+-- TODO: ここらへんなおす→TODOリストの初期値
+
 viewSelectProject : Task -> Html Msg
 viewSelectProject task =
   div []
       [ select
         [ onChange (updateTask task Project)]
-        (List.map viewListOption project)
+        ((option [hidden True, selected True] [text "選択してください"]) :: List.map viewListOption project)
       ]
 
 viewSelectTaskType : Task -> Html Msg
@@ -475,7 +479,7 @@ viewSelectTaskType task =
   div []
       [ select
         [ onChange (updateTask task TaskType) ]
-        (List.map viewListOption tasktypes)
+        (option [hidden True, selected True] [text "選択してください"] :: List.map viewListOption tasktypes)
       ]
 
 viewInput : Task -> Html Msg
@@ -505,11 +509,11 @@ viewCancelTodo model =
   button [ onClick (ShowInputWindow model.inputWindowViewVisibility) ]
          [ text "Cancel"]
 
-viewRepeatFrequency : Model -> Html Msg
-viewRepeatFrequency model =
+viewRepeatFrequency : Task -> Html Msg
+viewRepeatFrequency task =
   let
     repeatTask =
-      if model.task.project == "繰り返し" then
+      if task.project == "繰り返し" then
         True
       else
         False
@@ -518,14 +522,14 @@ viewRepeatFrequency model =
   in
   div [ hidden (not repeatTask) ]
       [ select 
-        [ onChange (updateTask model.task RepeatTask) ]
-        (List.map viewListOption repeatedFrequency)
-      , viewRepeatTime model
+        [ onChange (updateTask task RepeatTask) ]
+        ((option [] [text "hoge"]) :: (List.map viewListOption repeatedFrequency))
+      , viewRepeatTime task
       ]
 
 
-viewRepeatTime : Model -> Html Msg
-viewRepeatTime model =
+viewRepeatTime : Task -> Html Msg
+viewRepeatTime task =
   let
     weekday = 
       ["月", "火", "水", "木", "金", "土", "日" ]
@@ -539,9 +543,9 @@ viewRepeatTime model =
         checkedBox =
           case taskRepType of
             Weekly w 
-              -> Debug.log "day" (List.member w model.task.repeatedDay)
+              -> List.member w task.repeatedDay
             Monthly m
-              -> Debug.log "date" (List.member m model.task.repeatedDate)
+              -> List.member m task.repeatedDate
       in
       div [ id ("todo" ++ str)]
           [ input [ type_ "checkbox"
@@ -556,7 +560,7 @@ viewRepeatTime model =
 
     repeatedTime : List (Html Msg)
     repeatedTime =
-      case model.task.repeatTask of
+      case task.repeatTask of
         "Weekly" ->
           List.map (\x -> makeList (Weekly x) x) weekday
         "Monthly" ->
@@ -582,7 +586,7 @@ viewInputWindow model =
       [ div [class "todo--inputbox", hidden (not model.inputWindowViewVisibility)]
             [
               viewInput model.task
-            , viewRepeatFrequency model
+            , viewRepeatFrequency model.task
             , viewAddTodo model.task
             , viewCancelTodo model
             ]
@@ -689,11 +693,11 @@ updateWithStorage msg oldModel =
     case msg of
       AddToTask _ ->
         if newTask.id /= "" then
-          ( {newModel | task = {newTask | task = ""} }
+          ( {newModel | task = initTask }
           , Cmd.batch [ setTasksStorage (taskEncoder newTask), cmds]
           )
         else
-          ( {newModel | task = {newTask | task = ""} }, cmds)
+          ( {newModel | task = initTask }, cmds)
       AttackToEnemy ->
         ( newModel
         , Cmd.batch [ setStatusStorage (statusEncoder newModel.buttle), cmds]
