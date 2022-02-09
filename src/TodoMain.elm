@@ -90,7 +90,12 @@ type alias ButtleModel =
 type alias IndexModel =
   { status : Maybe ButtleModel
   , todos : Maybe (List Task)
-  , loginStatus : Maybe Bool
+  , loginStatus : Maybe LoginStatus
+  }
+
+type alias LoginStatus =
+  { loginToday : Bool
+  , loginDate : Int
   }
 
 type alias Model =
@@ -100,10 +105,9 @@ type alias Model =
   , taskList : List Task
   , task : Task
   , uid : String
-  , date : Int
+  , loginDate : LoginStatus
   , inputWindowViewVisibility : Bool
   , selectedProject : String
-  , loginStatus : Bool
   }
 
 
@@ -159,6 +163,11 @@ initTask =
   , repeatedDate = [""]
   }
 
+initLoginStatus : LoginStatus
+initLoginStatus =
+  { loginToday = False
+  , loginDate = 0
+  }
 
 initModel : Navigation.Key -> Model
 initModel navigationKey =
@@ -167,7 +176,6 @@ initModel navigationKey =
       case List.head project of
         Just p -> p
         Nothing -> (0, "Not Found") 
-
   in
   { page = NotFound
   , navigationKey = navigationKey
@@ -175,10 +183,9 @@ initModel navigationKey =
   , taskList = initTodoModel
   , task = initTask
   , uid = ""
-  , date = 0
   , inputWindowViewVisibility = False
   , selectedProject = Tuple.second initProject
-  , loginStatus = True
+  , loginDate = initLoginStatus
   }
 
 
@@ -204,6 +211,7 @@ type Msg
   | ShowInputWindow Bool
   | SelectProjectTab String
   | SelectRepeatType TaskRepeatType Bool
+  | FirstLogin LoginStatus
 type InputType
   = Project
   | TaskType
@@ -292,28 +300,34 @@ setNewModel indexModel navigationKey =
         Nothing ->
           newModel.taskList
 
-    newLoginStatus : Bool
+    newLoginStatus : LoginStatus
     newLoginStatus =
       case indexModel.loginStatus of
         Just t ->
           Debug.log "status" t
         Nothing ->
-          Debug.log "status" False
+          Debug.log "status" initLoginStatus
   in
     { newModel | buttle = newButtleModel
                 , taskList = List.sortBy .date newTodoModel |> List.reverse
-                , loginStatus = Debug.log "status" newLoginStatus}
+                , loginDate = Debug.log "status" newLoginStatus}
+
+-- TODO: ここらへんをかえる
 
 setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
 setNewPage maybeRoute model =
-  let
+ let
+    oldLoginDate : LoginStatus
+    -- TODO : ここに変更後のModelを渡してやればいけるから、Cmdはその前に実行してやらなきゃならない
+    oldLoginDate = model.loginDate
     cmd =
-      if model.loginStatus == False then
-        Debug.log "first login" (Cmd.batch [setLoginInformation (loginEncoder True)])
+      if oldLoginDate.loginToday == False then
+        Debug.log "first login" (Cmd.batch [setLoginInformation (loginEncoder {oldLoginDate | loginToday = True})])
       else
-        Debug.log "second login" (Cmd.batch [setLoginInformation (loginEncoder False), getDate])
-    a = T.millisToPosix model.date
-    b = Debug.log "time" (TE.posixToParts T.utc a)
+        Debug.log "second login" (Cmd.batch [setLoginInformation (loginEncoder {oldLoginDate | loginToday = False})])
+    -- a = T.millisToPosix model.date
+    -- b = Debug.log "time" (TE.posixToParts T.utc a)
+
   in
   case maybeRoute of
     Just Routes.Todo ->
@@ -329,7 +343,7 @@ getNewId =
 
 getDate : Cmd Msg
 getDate =
-  Ts.perform Tick (Ts.map2 Tuple.pair T.now T.here)
+  Ts.perform Tick (Ts.map2 Tuple.pair (Debug.log "getDate" T.now) T.here)
 
 
 deleteTask : Model -> Task -> List Task
@@ -368,8 +382,7 @@ update msg model =
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
           let
-            newTask = {task | id = model.uid, date = model.date}
-            tasknow = Debug.log "time" (TE.posixToParts T.utc (T.millisToPosix newTask.date))
+            newTask = {task | id = model.uid, date = model.loginDate.loginDate}
           in
           if newTask.id /= "" then
             ( { model | 
@@ -392,7 +405,7 @@ update msg model =
               |> TE.partsToPosix zone
               |> T.posixToMillis
           in
-          ({ model | date = localTime}, Cmd.none)
+          ({ model | loginDate = {loginDate = localTime, loginToday = True}}, Cmd.none)
         (NewId uuid, _) ->
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
@@ -424,6 +437,7 @@ update msg model =
               ( {model | task = { oldTask | repeatedDate = repList}}, Cmd.none )
         _ ->
           Debug.todo "予定外の値が来ていますよ"
+
 
 -- SUBSCRIPTIONS
 
@@ -837,14 +851,25 @@ taskDecoder =
 
 -- Login: Login Event
 
-loginEncoder : Bool -> Encode.Value
+
+
+loginEncoder : LoginStatus -> Encode.Value
 loginEncoder loginStatus =
-  Encode.bool loginStatus
+  Encode.object
+    [ ("loginDate", Encode.int loginStatus.loginDate)
+    , ("loginToday", Encode.bool loginStatus.loginToday)
+    ]
+
+loginDecoder : Decode.Decoder LoginStatus
+loginDecoder =
+  Decode.succeed LoginStatus
+    |> DP.required "loginToday" Decode.bool
+    |> DP.required "loginDate" Decode.int
+
 
 indexDecoder : Decode.Decoder IndexModel
 indexDecoder =
  Decode.map3 IndexModel
    (Decode.field "status" <| Decode.nullable statusDecoder)
    (Decode.field "todos" <| Decode.nullable (Decode.list taskDecoder))
-   (Decode.field "loginStatus" <| Decode.nullable Decode.bool)
-
+   (Decode.field "loginStatus" <| Decode.nullable loginDecoder)

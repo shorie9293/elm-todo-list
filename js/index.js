@@ -7,14 +7,15 @@ async function main() {
   const statusData = await getStatusFromDB();
   const todoData = await getTasksFromDB();
   const loginData = localStorage.getItem('local-storage');
-
+  console.log( loginData)
   const flag = JSON.stringify({
     "status": statusData.actor && statusData.enemy ? statusData : null, 
     "todos" : JSON.stringify(todoData) != "[]" ? todoData : null,
-    "loginStatus" : loginData == 'true' ? true : false
+    "loginStatus" : JSON.parse(loginData)
     })
 
   const flags = flag ? JSON.parse(flag) : null
+  console.log( flags )
 
   const app = Elm.TodoMain.init({
     node: document.getElementById("main"),
