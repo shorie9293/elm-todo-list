@@ -148,6 +148,10 @@ body {
   text-align: left; 
 }
 
+.todo--tab--selected {
+  color: red;
+}
+
 .button--floating {
   position: absolute;
   display: table-cell;

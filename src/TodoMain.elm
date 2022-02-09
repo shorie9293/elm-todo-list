@@ -17,6 +17,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as DP
 import Json.Encode as Encode
 import Time as T
+import Time.Extra
 import Task as Ts
 import UUID exposing (UUID)
 import Random
@@ -52,18 +53,18 @@ type alias Task =
   , repeatedDate : List String
   }
 
-project : List String
+project : List (Int, String)
 project =
-  [ "メイン"
-  , "サブ"
-  , "繰り返し"
+  [ (1, "メイン")
+  , (2, "サブ")
+  , (3, "繰り返し")
   ]
 
-tasktypes : List String
+tasktypes : List (Int, String)
 tasktypes =
-  [ "次の行動"
-  , "連絡待ち"
-  , "待機"
+  [ (1, "次の行動")
+  , (2, "連絡待ち")
+  , (3, "待機")
   ]
 
 type alias EnemyModel =
@@ -138,18 +139,18 @@ initTask =
     firstProject = 
       case Debug.log "initTask" (List.head project) of
         Just p -> p
-        Nothing -> ""   
+        Nothing -> (0, "")   
     firstTaskType = 
       case (List.head tasktypes) of
         Just t -> t
-        Nothing -> ""   
+        Nothing -> (0, "")   
   in
   { id =""
   , date = 0
   , checked = False
   , task = ""
-  , project = firstProject
-  , taskType = firstTaskType
+  , project = (Tuple.second firstProject)
+  , taskType = (Tuple.second firstTaskType)
   , repeatTask = "-"
   , repeatedDay = [""]
   , repeatedDate = [""]
@@ -162,7 +163,7 @@ initModel navigationKey =
     initProject =
       case List.head project of
         Just p -> p
-        Nothing -> "Not Found" 
+        Nothing -> (0, "Not Found") 
 
   in
   { page = NotFound
@@ -173,7 +174,7 @@ initModel navigationKey =
   , uid = ""
   , date = 0
   , inputWindowViewVisibility = False
-  , selectedProject = initProject
+  , selectedProject = Tuple.second initProject
   }
 
 
@@ -343,8 +344,6 @@ update msg model =
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
           let
-            b = Debug.log "task length" (List.length task.repeatedDay)
-            a = Debug.log "task length" (List.length task.repeatedDate)
             newTask = {task | id = model.uid, date = model.date}
           in
           if newTask.id /= "" then
@@ -360,6 +359,9 @@ update msg model =
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
         (Tick time, _) ->
+          -- let
+          --   a = Debug.log "timezone" (T.toHour (Tuple.second time) (Tuple.first time))
+          -- in
           ({ model | date = T.posixToMillis time}, Cmd.none)
         (NewId uuid, _) ->
           ( { model | uid = UUID.toString uuid }, Cmd.none )
@@ -460,43 +462,48 @@ viewTodo todo=
 
 -- VIEW : TodoInputWindow
 
-viewListOption : String -> Html Msg
-viewListOption str =
-  option [] [ text str ]
+viewListOption : Model -> (Int, String) -> Html Msg
+viewListOption model (int, str) =
+  let
+    optionSelect =
+      if model.inputWindowViewVisibility && int == 1 then
+        True
+      else
+        False
+  in
+  option [selected optionSelect, value str] [ text str ]
 
--- TODO: ここらへんなおす→TODOリストの初期値
-
-viewSelectProject : Task -> Html Msg
-viewSelectProject task =
+viewSelectProject : Model -> Html Msg
+viewSelectProject model =
   div []
       [ select
-        [ onChange (updateTask task Project)]
-        ((option [hidden True, selected True] [text "選択してください"]) :: List.map viewListOption project)
+        [ onChange (updateTask model.task Project)]
+        (List.map (viewListOption model) project)
       ]
 
-viewSelectTaskType : Task -> Html Msg
-viewSelectTaskType task =
+viewSelectTaskType : Model -> Html Msg
+viewSelectTaskType model =
   div []
       [ select
-        [ onChange (updateTask task TaskType) ]
-        (option [hidden True, selected True] [text "選択してください"] :: List.map viewListOption tasktypes)
+        [ onChange (updateTask model.task TaskType) ]
+        (List.map (viewListOption model) tasktypes)
       ]
 
-viewInput : Task -> Html Msg
-viewInput task =
+viewInput : Model -> Html Msg
+viewInput model =
   div [ class "todo--input--taskinfo" ]
       [ input
           [ type_ "text"
           , placeholder "やること"
           , autofocus True
-          , value task.task
+          , value model.task.task
           , name "newTodo"
-          , onChange (updateTask task TaskName)
+          , onChange (updateTask model.task TaskName)
           -- , onCtrEnter (AddToTask task)
           ]
           []
-      , viewSelectProject task
-      , viewSelectTaskType task
+      , viewSelectProject model
+      , viewSelectTaskType model
       ]
 
 viewAddTodo : Task -> Html Msg
@@ -509,22 +516,22 @@ viewCancelTodo model =
   button [ onClick (ShowInputWindow model.inputWindowViewVisibility) ]
          [ text "Cancel"]
 
-viewRepeatFrequency : Task -> Html Msg
-viewRepeatFrequency task =
+viewRepeatFrequency : Model -> Html Msg
+viewRepeatFrequency model =
   let
     repeatTask =
-      if task.project == "繰り返し" then
+      if model.task.project == "繰り返し" then
         True
       else
         False
     repeatedFrequency = 
-      ["-", "Weekly", "Monthly"]
+      [(1, "-"), (2, "Weekly"), (3, "Monthly")]
   in
   div [ hidden (not repeatTask) ]
       [ select 
-        [ onChange (updateTask task RepeatTask) ]
-        ((option [] [text "hoge"]) :: (List.map viewListOption repeatedFrequency))
-      , viewRepeatTime task
+        [ onChange (updateTask model.task RepeatTask) ]
+        (List.map (viewListOption model) repeatedFrequency)
+      , viewRepeatTime model.task
       ]
 
 
@@ -582,11 +589,11 @@ viewInputWindow model =
       else
         "todo--inputbox--none"
   in
-  div [ class todoInputWindow ] 
+  div [ class todoInputWindow, hidden (not model.inputWindowViewVisibility) ] 
       [ div [class "todo--inputbox", hidden (not model.inputWindowViewVisibility)]
             [
-              viewInput model.task
-            , viewRepeatFrequency model.task
+              viewInput model
+            , viewRepeatFrequency model
             , viewAddTodo model.task
             , viewCancelTodo model
             ]
@@ -607,16 +614,16 @@ viewContent model =
     Todo ->
       ( "Todo List"
       , div [class "todo--page"] 
-            [ h1 [] [text "Todo List"]
+            [ h1 [] [text ("Todo List: " ++ model.selectedProject)]
             , viewInputWindow model
             , lazy viewTodoList model
-            , div [class "image-fish", hidden True] []
             , lazy viewFloatButton model
+            , viewTodoFooter model
             ]
       )
     Buttle ->
       ( "Buttle Field"
-      , div []
+      , div [class "todo--page"]
             [ h1 [] [text "Buttle Field"]
             , div [] 
                   [ lazy viewEnemy model.buttle.enemy
@@ -646,8 +653,21 @@ viewHeader =
 
 viewTodoFooter : Model -> Html Msg
 viewTodoFooter model =
+  let
+
+    projectTab: String -> (Int, String) -> Html Msg
+    projectTab c p =
+      div [ class c, onClick (SelectProjectTab (Tuple.second p))] [text (Tuple.second p)]
+
+    showProjectTab: (Int, String) -> Html Msg
+    showProjectTab p =
+      if Tuple.second p == model.selectedProject then
+        projectTab "todo--tab--selected" p
+      else
+        projectTab "todo--tab--non-selected" p
+  in
   div [class "todo--footer"]
-      (List.map (\x -> div [ onClick (SelectProjectTab x)] [text x]) project)
+      (List.map showProjectTab project)
 
 viewFooter : Html Msg
 viewFooter =
@@ -670,7 +690,7 @@ view model =
   in
   { title = title,
     body = 
-      [ div [class "wrap"] [viewHeader, content, viewTodoFooter model, viewFooter] ]
+      [ div [class "wrap"] [viewHeader, content, viewFooter] ]
   }
 
 -- VIEW : END
