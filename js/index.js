@@ -3,18 +3,19 @@ import { Dexie } from 'dexie';
 
 async function main() {
 
-  // const statusData = JSON.stringify(await getStatusFromDB());
   // const todoData = JSON.stringify(await getTasksFromDB());
   const statusData = await getStatusFromDB();
   const todoData = await getTasksFromDB();
+  const loginData = localStorage.getItem('local-storage');
 
   const flag = JSON.stringify({
     "status": statusData.actor && statusData.enemy ? statusData : null, 
-    "todos" : JSON.stringify(todoData) != "[]" ? todoData : null 
+    "todos" : JSON.stringify(todoData) != "[]" ? todoData : null,
+    "loginStatus" : loginData == 'true' ? true : false
     })
 
   const flags = flag ? JSON.parse(flag) : null
-  
+
   const app = Elm.TodoMain.init({
     node: document.getElementById("main"),
     flags: flags
@@ -35,6 +36,12 @@ async function main() {
   app.ports.changeCheckedDB.subscribe(function(state) {
     changeCheck(state);
   });
+
+  app.ports.setLoginInformation.subscribe(function(state) {
+    console.log(state);
+    localStorage.setItem('local-storage', JSON.stringify(state));
+  });
+
 }
 
 let db;

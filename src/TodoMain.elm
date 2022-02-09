@@ -2,7 +2,8 @@ port module TodoMain exposing ( main
                           , initTodoModel
                           , reduceEnemyHp
                           , encountNextEnemy
-                          , judgeLevelUp)
+                          , judgeLevelUp
+                          , setLoginInformation)
 import Routes
 import Url exposing (Url)
 
@@ -17,7 +18,7 @@ import Json.Decode as Decode
 import Json.Decode.Pipeline as DP
 import Json.Encode as Encode
 import Time as T
-import Time.Extra
+import Time.Extra as TE
 import Task as Ts
 import UUID exposing (UUID)
 import Random
@@ -89,6 +90,7 @@ type alias ButtleModel =
 type alias IndexModel =
   { status : Maybe ButtleModel
   , todos : Maybe (List Task)
+  , loginStatus : Maybe Bool
   }
 
 type alias Model =
@@ -101,6 +103,7 @@ type alias Model =
   , date : Int
   , inputWindowViewVisibility : Bool
   , selectedProject : String
+  , loginStatus : Bool
   }
 
 
@@ -137,11 +140,11 @@ initTask : Task
 initTask =
   let
     firstProject = 
-      case Debug.log "initTask" (List.head project) of
+      case List.head project of
         Just p -> p
         Nothing -> (0, "")   
     firstTaskType = 
-      case (List.head tasktypes) of
+      case List.head tasktypes of
         Just t -> t
         Nothing -> (0, "")   
   in
@@ -175,6 +178,7 @@ initModel navigationKey =
   , date = 0
   , inputWindowViewVisibility = False
   , selectedProject = Tuple.second initProject
+  , loginStatus = True
   }
 
 
@@ -194,13 +198,12 @@ type Msg
   | AddToTask Task
   | DeleteTask Task
   | UpdateTask Task
-  | Tick T.Posix
+  | Tick (T.Posix, T.Zone)
   | NewId UUID
   | ChangeChecked Task
   | ShowInputWindow Bool
   | SelectProjectTab String
   | SelectRepeatType TaskRepeatType Bool
-
 type InputType
   = Project
   | TaskType
@@ -274,32 +277,51 @@ setNewModel : IndexModel -> Navigation.Key -> Model
 setNewModel indexModel navigationKey =
   let
     newModel = initModel navigationKey
-    iButtleModel =
+    newButtleModel : ButtleModel
+    newButtleModel =
       case indexModel.status of
         Just s ->
           s
         Nothing ->
           newModel.buttle
-
-    iTodoModel =
+    newTodoModel : List Task
+    newTodoModel =
       case indexModel.todos of
         Just t ->
           t
         Nothing ->
           newModel.taskList
-  in
-    { newModel | buttle = iButtleModel, taskList = List.sortBy .date iTodoModel |> List.reverse}
 
+    newLoginStatus : Bool
+    newLoginStatus =
+      case indexModel.loginStatus of
+        Just t ->
+          Debug.log "status" t
+        Nothing ->
+          Debug.log "status" False
+  in
+    { newModel | buttle = newButtleModel
+                , taskList = List.sortBy .date newTodoModel |> List.reverse
+                , loginStatus = Debug.log "status" newLoginStatus}
 
 setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
 setNewPage maybeRoute model =
+  let
+    cmd =
+      if model.loginStatus == False then
+        Debug.log "first login" (Cmd.batch [setLoginInformation (loginEncoder True)])
+      else
+        Debug.log "second login" (Cmd.batch [setLoginInformation (loginEncoder False), getDate])
+    a = T.millisToPosix model.date
+    b = Debug.log "time" (TE.posixToParts T.utc a)
+  in
   case maybeRoute of
     Just Routes.Todo ->
-      ( { model | page = Todo }, Cmd.none )
+      ( { model | page = Todo }, cmd )
     Just Routes.Buttle ->
-      ( { model | page = Buttle }, Cmd.none )
+      ( { model | page = Buttle }, cmd )
     Nothing ->
-      ( { model | page = NotFound }, Cmd.none )
+      ( { model | page = NotFound }, cmd )
 
 getNewId : Cmd Msg
 getNewId =
@@ -307,11 +329,13 @@ getNewId =
 
 getDate : Cmd Msg
 getDate =
-  Ts.perform Tick T.now
+  Ts.perform Tick (Ts.map2 Tuple.pair T.now T.here)
+
 
 deleteTask : Model -> Task -> List Task
 deleteTask model task =
   List.filter (\t -> t /= task ) model.taskList
+
 
 updateChecked : String -> Task -> Task
 updateChecked id task =
@@ -345,6 +369,7 @@ update msg model =
         (AddToTask task, _) ->
           let
             newTask = {task | id = model.uid, date = model.date}
+            tasknow = Debug.log "time" (TE.posixToParts T.utc (T.millisToPosix newTask.date))
           in
           if newTask.id /= "" then
             ( { model | 
@@ -359,10 +384,15 @@ update msg model =
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
         (Tick time, _) ->
-          -- let
-          --   a = Debug.log "timezone" (T.toHour (Tuple.second time) (Tuple.first time))
-          -- in
-          ({ model | date = T.posixToMillis time}, Cmd.none)
+          let
+            t = Tuple.first time
+            zone = Tuple.second time
+            localTime =
+              TE.posixToParts zone t 
+              |> TE.partsToPosix zone
+              |> T.posixToMillis
+          in
+          ({ model | date = localTime}, Cmd.none)
         (NewId uuid, _) ->
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
@@ -701,7 +731,7 @@ port setStatusStorage : Encode.Value -> Cmd msg
 port setTasksStorage : Encode.Value -> Cmd msg
 port deleteTaskFromDb : Encode.Value -> Cmd msg
 port changeCheckedDB : Encode.Value -> Cmd msg
-port setLoginDate : Encode.Value -> Cmd msg
+port setLoginInformation : Encode.Value -> Cmd msg
 
 updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
 updateWithStorage msg oldModel =
@@ -753,21 +783,6 @@ statusEncoder buttle =
       )
     ]
 
-taskEncoder : Task -> Encode.Value
-taskEncoder task =
-  Encode.object
-    [ ("id", Encode.string task.id)
-    , ("date", Encode.int task.date)
-    , ("checked", Encode.bool task.checked)
-    , ("task", Encode.string task.task)
-    , ("project", Encode.string task.project)
-    , ("taskType", Encode.string task.taskType)
-    , ("repeatTask", Encode.string task.repeatTask)
-    , ("repeatedDay", Encode.list Encode.string task.repeatedDay)
-    , ("repeatedDate", Encode.list Encode.string task.repeatedDate)
-    ]
-
-
 statusEnemyDecoder : Decode.Decoder EnemyModel
 statusEnemyDecoder =
   Decode.succeed EnemyModel
@@ -792,6 +807,21 @@ statusDecoder =
     (Decode.field "actor" statusActorDecoder)
 
 -- Todo
+
+taskEncoder : Task -> Encode.Value
+taskEncoder task =
+  Encode.object
+    [ ("id", Encode.string task.id)
+    , ("date", Encode.int task.date)
+    , ("checked", Encode.bool task.checked)
+    , ("task", Encode.string task.task)
+    , ("project", Encode.string task.project)
+    , ("taskType", Encode.string task.taskType)
+    , ("repeatTask", Encode.string task.repeatTask)
+    , ("repeatedDay", Encode.list Encode.string task.repeatedDay)
+    , ("repeatedDate", Encode.list Encode.string task.repeatedDate)
+    ]
+
 taskDecoder : Decode.Decoder Task
 taskDecoder =
   Decode.succeed Task
@@ -805,29 +835,16 @@ taskDecoder =
     |> DP.required "repeatedDay" (Decode.list Decode.string)
     |> DP.required "repeatedDate" (Decode.list Decode.string)
 
+-- Login: Login Event
+
+loginEncoder : Bool -> Encode.Value
+loginEncoder loginStatus =
+  Encode.bool loginStatus
+
 indexDecoder : Decode.Decoder IndexModel
 indexDecoder =
- Decode.map2 IndexModel
+ Decode.map3 IndexModel
    (Decode.field "status" <| Decode.nullable statusDecoder)
    (Decode.field "todos" <| Decode.nullable (Decode.list taskDecoder))
+   (Decode.field "loginStatus" <| Decode.nullable Decode.bool)
 
--- DECODE: Click Events
-
-
--- onCtrEnter :  msg -> Attribute msg
--- onCtrEnter msg =
---   let
---     ctrlKey =
---       Decode.field "ctrlKey" Decode.bool
---     decoder =
---       Decode.map2 Tuple.pair keyCode ctrlKey
---         |> Decode.andThen
---           ( \x ->
---             case x of
---               (13, True) ->
---                 Decode.succeed msg
---               (_, _) ->
---                 Decode.fail "failed"
---           )
---   in
---   on "keydown" decoder
