@@ -194,7 +194,7 @@ init flags url navigationKey =
   case Decode.decodeValue indexDecoder flags of
     Ok model -> setNewModel model navigationKey 
                 |> setNewPage (Routes.match url)
-    Err _ -> setNewPage (Routes.match url) (initModel navigationKey)
+    Err _ -> setNewPage (Routes.match url) (initModel navigationKey, Cmd.none)
 
   
 -- UPDATE
@@ -211,7 +211,8 @@ type Msg
   | ShowInputWindow Bool
   | SelectProjectTab String
   | SelectRepeatType TaskRepeatType Bool
-  | FirstLogin LoginStatus
+  | LoginInformation (T.Posix, T.Zone)
+
 type InputType
   = Project
   | TaskType
@@ -281,7 +282,7 @@ judgeLevelUp model =
       {oldActorModel | levelFlag = False }
     }
 
-setNewModel : IndexModel -> Navigation.Key -> Model
+setNewModel : IndexModel -> Navigation.Key -> (Model, Cmd Msg)
 setNewModel indexModel navigationKey =
   let
     newModel = initModel navigationKey
@@ -308,26 +309,31 @@ setNewModel indexModel navigationKey =
         Nothing ->
           Debug.log "status" initLoginStatus
   in
-    { newModel | buttle = newButtleModel
+    ({ newModel | buttle = newButtleModel
                 , taskList = List.sortBy .date newTodoModel |> List.reverse
-                , loginDate = Debug.log "status" newLoginStatus}
+                , loginDate = Debug.log "status" newLoginStatus},
+      getDate
+    )
 
 -- TODO: ここらへんをかえる
 
-setNewPage : Maybe Routes.Route -> Model -> ( Model, Cmd Msg )
-setNewPage maybeRoute model =
+setNewPage : Maybe Routes.Route -> (Model, Cmd Msg) -> ( Model, Cmd Msg )
+setNewPage maybeRoute oldModel =
  let
+    model = Tuple.first oldModel
+
     oldLoginDate : LoginStatus
     -- TODO : ここに変更後のModelを渡してやればいけるから、Cmdはその前に実行してやらなきゃならない
-    oldLoginDate = model.loginDate
+    oldLoginDate = Debug.log "check-timing" model.loginDate
     cmd =
       if oldLoginDate.loginToday == False then
-        Debug.log "first login" (Cmd.batch [setLoginInformation (loginEncoder {oldLoginDate | loginToday = True})])
+        -- Debug.log "first login" ( Cmd.batch [getLoginDate, setLoginInformation (loginEncoder {oldLoginDate | loginToday = True})])
+        Debug.log "first login" ( Cmd.batch [getLoginDate])
       else
-        Debug.log "second login" (Cmd.batch [setLoginInformation (loginEncoder {oldLoginDate | loginToday = False})])
+        Debug.log "second login" Cmd.none
     -- a = T.millisToPosix model.date
     -- b = Debug.log "time" (TE.posixToParts T.utc a)
-
+    a = Debug.log "checktiming-2" "hoge"
   in
   case maybeRoute of
     Just Routes.Todo ->
@@ -343,7 +349,11 @@ getNewId =
 
 getDate : Cmd Msg
 getDate =
-  Ts.perform Tick (Ts.map2 Tuple.pair (Debug.log "getDate" T.now) T.here)
+  Ts.perform Tick (Ts.map2 Tuple.pair T.now T.here)
+
+getLoginDate : Cmd Msg
+getLoginDate =
+  Ts.perform LoginInformation (Ts.map2 Tuple.pair T.now T.here)
 
 
 deleteTask : Model -> Task -> List Task
@@ -377,7 +387,7 @@ update msg model =
         (AttackToEnemy, _) ->
           ({model | buttle = attackToEnemy model.buttle}, Cmd.none)
         (NewRoute maybeRoute, _) ->
-          setNewPage maybeRoute model
+          setNewPage maybeRoute (model, Cmd.none)
         (Visit (Browser.Internal url), _) ->
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
@@ -399,7 +409,7 @@ update msg model =
         (Tick time, _) ->
           let
             t = Tuple.first time
-            zone = Tuple.second time
+            zone = Debug.log "timezone" Tuple.second time
             localTime =
               TE.posixToParts zone t 
               |> TE.partsToPosix zone
@@ -435,6 +445,18 @@ update msg model =
               ( {model | task = { oldTask | repeatedDay = repList}}, Cmd.none )
             Monthly _ ->
               ( {model | task = { oldTask | repeatedDate = repList}}, Cmd.none )
+        (LoginInformation time, _) ->
+          let
+            t = Tuple.first time
+            zone = Debug.log "timezone" Tuple.second time
+            localTime =
+              TE.posixToParts zone t 
+              |> TE.partsToPosix zone
+              |> T.posixToMillis
+            newloginDate = {loginDate = localTime, loginToday = True}
+          in
+          ({ model | loginDate = newloginDate}, 
+              Cmd.batch [setLoginInformation (loginEncoder newloginDate)])
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
