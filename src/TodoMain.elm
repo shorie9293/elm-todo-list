@@ -22,6 +22,7 @@ import Time.Extra as TE
 import Task as Ts
 import UUID exposing (UUID)
 import Random
+import String exposing (fromInt)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -54,8 +55,8 @@ type alias Task =
   , repeatedDate : List String
   }
 
-project : List (Int, String)
-project =
+projectTypes : List (Int, String)
+projectTypes =
   [ (1, "メイン")
   , (2, "サブ")
   , (3, "繰り返し")
@@ -105,7 +106,7 @@ type alias Model =
   , taskList : List Task
   , task : Task
   , uid : String
-  , loginDate : LoginStatus
+  , loginStatus : LoginStatus
   , inputWindowViewVisibility : Bool
   , selectedProject : String
   }
@@ -144,7 +145,7 @@ initTask : Task
 initTask =
   let
     firstProject = 
-      case List.head project of
+      case List.head projectTypes of
         Just p -> p
         Nothing -> (0, "")   
     firstTaskType = 
@@ -173,7 +174,7 @@ initModel : Navigation.Key -> Model
 initModel navigationKey =
   let
     initProject =
-      case List.head project of
+      case List.head projectTypes of
         Just p -> p
         Nothing -> (0, "Not Found") 
   in
@@ -185,7 +186,7 @@ initModel navigationKey =
   , uid = ""
   , inputWindowViewVisibility = False
   , selectedProject = Tuple.second initProject
-  , loginDate = initLoginStatus
+  , loginStatus = initLoginStatus
   }
 
 
@@ -212,6 +213,7 @@ type Msg
   | SelectProjectTab String
   | SelectRepeatType TaskRepeatType Bool
   | LoginInformation (T.Posix, T.Zone)
+  | CloseLoginWindow
 
 type InputType
   = Project
@@ -311,8 +313,8 @@ setNewModel indexModel navigationKey =
   in
     ({ newModel | buttle = newButtleModel
                 , taskList = List.sortBy .date newTodoModel |> List.reverse
-                , loginDate = Debug.log "status" newLoginStatus},
-      getDate
+                , loginStatus = newLoginStatus}
+      , Cmd.none
     )
 
 -- TODO: ここらへんをかえる
@@ -324,7 +326,7 @@ setNewPage maybeRoute oldModel =
 
     oldLoginDate : LoginStatus
     -- TODO : ここに変更後のModelを渡してやればいけるから、Cmdはその前に実行してやらなきゃならない
-    oldLoginDate = Debug.log "check-timing" model.loginDate
+    oldLoginDate = Debug.log "check-timing" model.loginStatus
     cmd =
       if oldLoginDate.loginToday == False then
         -- Debug.log "first login" ( Cmd.batch [getLoginDate, setLoginInformation (loginEncoder {oldLoginDate | loginToday = True})])
@@ -392,7 +394,7 @@ update msg model =
           (model, Navigation.pushUrl model.navigationKey (Url.toString url))
         (AddToTask task, _) ->
           let
-            newTask = {task | id = model.uid, date = model.loginDate.loginDate}
+            newTask = {task | id = model.uid, date = model.loginStatus.loginDate}
           in
           if newTask.id /= "" then
             ( { model | 
@@ -410,12 +412,15 @@ update msg model =
           let
             t = Tuple.first time
             zone = Debug.log "timezone" Tuple.second time
+
+            -- TODO: 時間情報は日まででいいので切り捨てる。
+            -- TODO: time zoneも保管する → Modelに一時保管かな。Strageには入れなくてよい気がする。
             localTime =
               TE.posixToParts zone t 
               |> TE.partsToPosix zone
               |> T.posixToMillis
           in
-          ({ model | loginDate = {loginDate = localTime, loginToday = True}}, Cmd.none)
+          ({ model | loginStatus = {loginDate = localTime, loginToday = True}}, Cmd.none)
         (NewId uuid, _) ->
           ( { model | uid = UUID.toString uuid }, Cmd.none )
         (ChangeChecked task, _) ->
@@ -453,10 +458,18 @@ update msg model =
               TE.posixToParts zone t 
               |> TE.partsToPosix zone
               |> T.posixToMillis
-            newloginDate = {loginDate = localTime, loginToday = True}
+            oldLoginStatus = model.loginStatus
+            newloginDate = Debug.log "SetNewPage" {oldLoginStatus | loginDate = localTime}
           in
-          ({ model | loginDate = newloginDate}, 
+          ({ model | loginStatus = newloginDate}, 
               Cmd.batch [setLoginInformation (loginEncoder newloginDate)])
+        (CloseLoginWindow, _) ->
+          let
+            oldLoginStatus = Debug.log "CloseLoginWindow" model.loginStatus
+            newLoginStatus = {oldLoginStatus | loginToday = True}
+          in
+          ({model | loginStatus = newLoginStatus },
+              Cmd.batch [setLoginInformation (loginEncoder newLoginStatus)])
         _ ->
           Debug.todo "予定外の値が来ていますよ"
 
@@ -469,6 +482,35 @@ subscriptions _ =
 
 -- VIEW
 
+-- VIEW: Login Bounus
+
+
+-- TODO: ページの体裁を整える
+viewLoginStatus : Model -> Html Msg
+viewLoginStatus model =
+  let 
+    loginStatusWindow =
+      if not model.loginStatus.loginToday then
+        "todo--inputbox--cover"
+      else
+        "todo--inputbox--none"
+    today = T.millisToPosix model.loginStatus.loginDate
+            |> TE.posixToParts T.utc
+
+    month =
+      if today.month == T.Feb then
+        "2"
+      else
+        "100"
+        
+  in
+  div [ class loginStatusWindow, hidden model.loginStatus.loginToday] 
+      [ button [ onClick CloseLoginWindow]
+                []
+      , h1 [] [ text (month ++ "月" ++ (fromInt today.day) ++ "日")]
+      ]
+
+-- VIEW: Buttle
 viewEnemy : EnemyModel -> Html Msg
 viewEnemy enemyModel =
   div []
@@ -493,6 +535,8 @@ viewTodoList : Model -> Html Msg
 viewTodoList model =
   div [ class "todo--list" ]
     (List.map viewTodo (List.filter (\x -> x.project == model.selectedProject) model.taskList))
+
+-- VIEW: Todo
 
 viewTodo : Task -> Html Msg
 viewTodo todo=
@@ -544,7 +588,7 @@ viewSelectProject model =
   div []
       [ select
         [ onChange (updateTask model.task Project)]
-        (List.map (viewListOption model) project)
+        (List.map (viewListOption model) projectTypes)
       ]
 
 viewSelectTaskType : Model -> Html Msg
@@ -681,6 +725,7 @@ viewContent model =
       ( "Todo List"
       , div [class "todo--page"] 
             [ h1 [] [text ("Todo List: " ++ model.selectedProject)]
+            , viewLoginStatus model
             , viewInputWindow model
             , lazy viewTodoList model
             , lazy viewFloatButton model
@@ -692,7 +737,8 @@ viewContent model =
       , div [class "todo--page"]
             [ h1 [] [text "Buttle Field"]
             , div [] 
-                  [ lazy viewEnemy model.buttle.enemy
+                  [ viewLoginStatus model
+                  , lazy viewEnemy model.buttle.enemy
                   , lazy viewActor model.buttle.actor 
                   ]
             ]
@@ -733,7 +779,7 @@ viewTodoFooter model =
         projectTab "todo--tab--non-selected" p
   in
   div [class "todo--footer"]
-      (List.map showProjectTab project)
+      (List.map showProjectTab projectTypes)
 
 viewFooter : Html Msg
 viewFooter =

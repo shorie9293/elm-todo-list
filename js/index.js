@@ -7,7 +7,7 @@ async function main() {
   const statusData = await getStatusFromDB();
   const todoData = await getTasksFromDB();
   const loginData = localStorage.getItem('local-storage');
-  console.log( loginData)
+  console.log( "logindata", loginData)
   const flag = JSON.stringify({
     "status": statusData.actor && statusData.enemy ? statusData : null, 
     "todos" : JSON.stringify(todoData) != "[]" ? todoData : null,
