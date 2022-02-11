@@ -60,6 +60,7 @@ projectTypes =
   [ (1, "メイン")
   , (2, "サブ")
   , (3, "繰り返し")
+  , (4, "今日")
   ]
 
 tasktypes : List (Int, String)
@@ -107,6 +108,7 @@ type alias Model =
   , task : Task
   , uid : String
   , loginStatus : LoginStatus
+  , timeZone : T.Zone
   , inputWindowViewVisibility : Bool
   , selectedProject : String
   }
@@ -187,6 +189,7 @@ initModel navigationKey =
   , inputWindowViewVisibility = False
   , selectedProject = Tuple.second initProject
   , loginStatus = initLoginStatus
+  , timeZone = T.utc
   }
 
 
@@ -317,8 +320,6 @@ setNewModel indexModel navigationKey =
       , Cmd.none
     )
 
--- TODO: ここらへんをかえる
-
 setNewPage : Maybe Routes.Route -> (Model, Cmd Msg) -> ( Model, Cmd Msg )
 setNewPage maybeRoute oldModel =
  let
@@ -329,13 +330,9 @@ setNewPage maybeRoute oldModel =
     oldLoginDate = Debug.log "check-timing" model.loginStatus
     cmd =
       if oldLoginDate.loginToday == False then
-        -- Debug.log "first login" ( Cmd.batch [getLoginDate, setLoginInformation (loginEncoder {oldLoginDate | loginToday = True})])
         Debug.log "first login" ( Cmd.batch [getLoginDate])
       else
         Debug.log "second login" Cmd.none
-    -- a = T.millisToPosix model.date
-    -- b = Debug.log "time" (TE.posixToParts T.utc a)
-    a = Debug.log "checktiming-2" "hoge"
   in
   case maybeRoute of
     Just Routes.Todo ->
@@ -413,12 +410,14 @@ update msg model =
             t = Tuple.first time
             zone = Debug.log "timezone" Tuple.second time
 
-            -- TODO: 時間情報は日まででいいので切り捨てる。
-            -- TODO: time zoneも保管する → Modelに一時保管かな。Strageには入れなくてよい気がする。
             localTime =
               TE.posixToParts zone t 
               |> TE.partsToPosix zone
               |> T.posixToMillis
+
+            hoge = Debug.log "time_zone"
+              (T.millisToPosix localTime
+              |> TE.posixToParts zone)
           in
           ({ model | loginStatus = {loginDate = localTime, loginToday = True}}, Cmd.none)
         (NewId uuid, _) ->
@@ -455,23 +454,63 @@ update msg model =
             t = Tuple.first time
             zone = Debug.log "timezone" Tuple.second time
             localTime =
-              TE.posixToParts zone t 
+              TE.floor TE.Day zone t
+              |> TE.posixToParts zone 
               |> TE.partsToPosix zone
               |> T.posixToMillis
             oldLoginStatus = model.loginStatus
             newloginDate = Debug.log "SetNewPage" {oldLoginStatus | loginDate = localTime}
+            hoge = Debug.log "time_zone"
+              T.millisToPosix localTime
+
+            todaysWeekDay : String
+            todaysWeekDay =
+              toJapaneseWeekday (T.toWeekday zone hoge)
+
+            weeklyRepeatedTaskList : List Task
+            weeklyRepeatedTaskList =
+              List.filter (\x -> x.repeatTask == "Weekly") model.taskList
+
+            newList =
+              Debug.log "list" List.filter (\x -> List.member todaysWeekDay x.repeatedDay ) weeklyRepeatedTaskList
+
+            listLength = Debug.log "todayslist" (List.length newList)
+            todaysList : List Task
+            todaysList =
+              List.map (\x -> {x | id = x.id ++ "R", project = "今日"}) newList
+            
+            nextList =
+              List.append todaysList model.taskList
+            -- todaysTaskList =
+            --   List.filter (\x -> x.repeatedDay == todaysWeekDay ) model.taskList
+
           in
-          ({ model | loginStatus = newloginDate}, 
+          ({ model | taskList = nextList, loginStatus = newloginDate, timeZone = zone}, 
               Cmd.batch [setLoginInformation (loginEncoder newloginDate)])
         (CloseLoginWindow, _) ->
           let
             oldLoginStatus = Debug.log "CloseLoginWindow" model.loginStatus
+            -- TODO: あとでなおす
             newLoginStatus = {oldLoginStatus | loginToday = True}
+            -- newLoginStatus = {oldLoginStatus | loginToday = False}
           in
           ({model | loginStatus = newLoginStatus },
               Cmd.batch [setLoginInformation (loginEncoder newLoginStatus)])
         _ ->
           Debug.todo "予定外の値が来ていますよ"
+
+-- UPDATE: Tool
+
+toJapaneseWeekday : T.Weekday -> String
+toJapaneseWeekday weekday =
+  case weekday of
+    T.Mon -> "月"
+    T.Tue -> "火"
+    T.Wed -> "水"
+    T.Thu -> "木"
+    T.Fri -> "金"
+    T.Sat -> "土"
+    T.Sun -> "日"
 
 
 -- SUBSCRIPTIONS
@@ -495,7 +534,7 @@ viewLoginStatus model =
       else
         "todo--inputbox--none"
     today = T.millisToPosix model.loginStatus.loginDate
-            |> TE.posixToParts T.utc
+            |> TE.posixToParts model.timeZone
 
     month =
       if today.month == T.Feb then
@@ -840,6 +879,8 @@ updateWithStorage msg oldModel =
       ChangeChecked task ->
         ( newModel
         , Cmd.batch [ changeCheckedDB (taskEncoder task), cmds] )
+      LoginInformation _ ->
+        ( newModel, Cmd.batch  (List.map (\task -> setTasksStorage (taskEncoder task)) newModel.taskList) )
       _ ->
         ( newModel, cmds )
 
