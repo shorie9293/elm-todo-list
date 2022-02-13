@@ -23,6 +23,7 @@ import Task as Ts
 import UUID exposing (UUID)
 import Random
 import String exposing (fromInt)
+import String exposing (toInt)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -57,10 +58,10 @@ type alias Task =
 
 projectTypes : List (Int, String)
 projectTypes =
-  [ (1, "メイン")
+  [ (0, "今日")
+  , (1, "メイン")
   , (2, "サブ")
   , (3, "繰り返し")
-  , (4, "今日")
   ]
 
 tasktypes : List (Int, String)
@@ -326,13 +327,12 @@ setNewPage maybeRoute oldModel =
     model = Tuple.first oldModel
 
     oldLoginDate : LoginStatus
-    -- TODO : ここに変更後のModelを渡してやればいけるから、Cmdはその前に実行してやらなきゃならない
     oldLoginDate = Debug.log "check-timing" model.loginStatus
     cmd =
-      if oldLoginDate.loginToday == False then
+      -- if oldLoginDate.loginToday == False then
         Debug.log "first login" ( Cmd.batch [getLoginDate])
-      else
-        Debug.log "second login" Cmd.none
+      -- else
+      --   Debug.log "second login" Cmd.none
   in
   case maybeRoute of
     Just Routes.Todo ->
@@ -415,9 +415,6 @@ update msg model =
               |> TE.partsToPosix zone
               |> T.posixToMillis
 
-            hoge = Debug.log "time_zone"
-              (T.millisToPosix localTime
-              |> TE.posixToParts zone)
           in
           ({ model | loginStatus = {loginDate = localTime, loginToday = True}}, Cmd.none)
         (NewId uuid, _) ->
@@ -451,46 +448,81 @@ update msg model =
               ( {model | task = { oldTask | repeatedDate = repList}}, Cmd.none )
         (LoginInformation time, _) ->
           let
+
             t = Tuple.first time
             zone = Debug.log "timezone" Tuple.second time
             localTime =
               TE.floor TE.Day zone t
-              |> TE.posixToParts zone 
-              |> TE.partsToPosix zone
               |> T.posixToMillis
+
             oldLoginStatus = model.loginStatus
-            newloginDate = Debug.log "SetNewPage" {oldLoginStatus | loginDate = localTime}
-            hoge = Debug.log "time_zone"
-              T.millisToPosix localTime
+
+            logind = Debug.log "login" (oldLoginStatus.loginDate == localTime)
+            
+            newloginDate = {oldLoginStatus | loginDate = localTime, loginToday = logind}
 
             todaysWeekDay : String
             todaysWeekDay =
-              toJapaneseWeekday (T.toWeekday zone hoge)
+              toJapaneseWeekday (T.toWeekday zone <| T.millisToPosix localTime)
 
-            weeklyRepeatedTaskList : List Task
-            weeklyRepeatedTaskList =
+            todaysDate : String
+            todaysDate =
+
+              let
+                ti =
+                    T.millisToPosix localTime
+-- TODO: 日付調整を入れているので、本番の時はけすようにする
+                    |> TE.add TE.Day 15 zone
+                dif =
+                  Debug.log "月末判定" 
+                    (
+                    ti == TE.add TE.Day 1 zone ti
+                    )
+              in
+              if dif then
+                T.toDay zone ti
+                |> fromInt              
+              else
+                "月末"
+
+-- TODO: Repeatタスクを今日のタスクに入れるのも、ログインがTrueじゃなければいれない
+
+            weeklyNewList : List Task
+            weeklyNewList =
               List.filter (\x -> x.repeatTask == "Weekly") model.taskList
+              |> Debug.log "weeklylist" (List.filter (\x -> List.member todaysWeekDay x.repeatedDay ) )
 
-            newList =
-              Debug.log "list" List.filter (\x -> List.member todaysWeekDay x.repeatedDay ) weeklyRepeatedTaskList
 
-            listLength = Debug.log "todayslist" (List.length newList)
+            monthlyNewList =
+              List.filter (\x -> x.repeatTask == "Monthly") model.taskList
+              |> Debug.log "monthlyList" (List.filter (\x -> List.member todaysDate x.repeatedDate) )
+
             todaysList : List Task
             todaysList =
-              List.map (\x -> {x | id = x.id ++ "R", project = "今日"}) newList
+              List.map (\x -> {x | id = x.id ++ "R",date = 0,repeatTask="-", project = "今日"}) (List.append weeklyNewList monthlyNewList)
             
+            oldTodaysList : List Task
+            oldTodaysList =  
+              List.filter (\x -> x.project  == "今日") model.taskList
+            judgeId : List Task -> Task -> Bool
+            judgeId taskList task =
+              List.map (\x -> 
+                          if x.id /= task.id then
+                            True
+                          else
+                            False) taskList
+              |> List.member False
+
             nextList =
-              List.append todaysList model.taskList
-            -- todaysTaskList =
-            --   List.filter (\x -> x.repeatedDay == todaysWeekDay ) model.taskList
+              List.filter (\x -> not (judgeId oldTodaysList x)) todaysList
+              |> List.append model.taskList
 
           in
           ({ model | taskList = nextList, loginStatus = newloginDate, timeZone = zone}, 
-              Cmd.batch [setLoginInformation (loginEncoder newloginDate)])
+              Cmd.batch [])
         (CloseLoginWindow, _) ->
           let
             oldLoginStatus = Debug.log "CloseLoginWindow" model.loginStatus
-            -- TODO: あとでなおす
             newLoginStatus = {oldLoginStatus | loginToday = True}
             -- newLoginStatus = {oldLoginStatus | loginToday = False}
           in
@@ -512,6 +544,21 @@ toJapaneseWeekday weekday =
     T.Sat -> "土"
     T.Sun -> "日"
 
+toJapaneseMonth : T.Month -> String
+toJapaneseMonth month =
+  case month of
+    T.Jan -> "1"
+    T.Feb -> "2"
+    T.Mar -> "3"
+    T.Apr -> "4"
+    T.May -> "5"
+    T.Jun -> "6"
+    T.Jul -> "7"
+    T.Aug -> "8"
+    T.Sep -> "9"
+    T.Oct -> "10"
+    T.Nov -> "11"
+    T.Dec -> "12"
 
 -- SUBSCRIPTIONS
 
@@ -537,16 +584,21 @@ viewLoginStatus model =
             |> TE.posixToParts model.timeZone
 
     month =
-      if today.month == T.Feb then
-        "2"
-      else
-        "100"
+      toJapaneseMonth today.month
+
+    todaysTasks =
+      List.filter (\x -> x.project == "今日") model.taskList
         
   in
   div [ class loginStatusWindow, hidden model.loginStatus.loginToday] 
-      [ button [ onClick CloseLoginWindow]
-                []
-      , h1 [] [ text (month ++ "月" ++ (fromInt today.day) ++ "日")]
+      [ div [class "todo--inputbox", hidden model.loginStatus.loginToday]
+            [
+              h2 [] [ text (month ++ "月" ++ (fromInt today.day) ++ "日のタスク")]
+            , div []
+                  (List.map (\x -> div [] [text x.task ]) todaysTasks)
+            , button [ onClick CloseLoginWindow]
+                  [ text "りょうかい!!"]
+            ] 
       ]
 
 -- VIEW: Buttle
@@ -805,10 +857,12 @@ viewHeader =
 viewTodoFooter : Model -> Html Msg
 viewTodoFooter model =
   let
-
+    newProjectTypes = 
+      List.take 4 projectTypes
     projectTab: String -> (Int, String) -> Html Msg
     projectTab c p =
-      div [ class c, onClick (SelectProjectTab (Tuple.second p))] [text (Tuple.second p)]
+        div [ class c, onClick (SelectProjectTab (Tuple.second p))] [text (Tuple.second p)]
+        
 
     showProjectTab: (Int, String) -> Html Msg
     showProjectTab p =
@@ -818,7 +872,7 @@ viewTodoFooter model =
         projectTab "todo--tab--non-selected" p
   in
   div [class "todo--footer"]
-      (List.map showProjectTab projectTypes)
+      (List.map showProjectTab newProjectTypes)
 
 viewFooter : Html Msg
 viewFooter =
