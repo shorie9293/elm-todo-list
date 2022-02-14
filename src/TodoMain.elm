@@ -450,6 +450,9 @@ update msg model =
           let
 
             t = Tuple.first time
+                |> TE.add TE.Day 0 zone
+
+-- TODO: 日付調整を入れているので、本番の時はけすようにする
             zone = Debug.log "timezone" Tuple.second time
             localTime =
               TE.floor TE.Day zone t
@@ -471,8 +474,6 @@ update msg model =
               let
                 ti =
                     T.millisToPosix localTime
--- TODO: 日付調整を入れているので、本番の時はけすようにする
-                    |> TE.add TE.Day 15 zone
                 dif =
                   Debug.log "月末判定" 
                     (
@@ -484,8 +485,6 @@ update msg model =
                 |> fromInt              
               else
                 "月末"
-
--- TODO: Repeatタスクを今日のタスクに入れるのも、ログインがTrueじゃなければいれない
 
             weeklyNewList : List Task
             weeklyNewList =
@@ -518,8 +517,11 @@ update msg model =
               |> List.append model.taskList
 
           in
+          if logind then
+          (model, Cmd.none)
+          else
           ({ model | taskList = nextList, loginStatus = newloginDate, timeZone = zone}, 
-              Cmd.batch [])
+              Cmd.none)
         (CloseLoginWindow, _) ->
           let
             oldLoginStatus = Debug.log "CloseLoginWindow" model.loginStatus
