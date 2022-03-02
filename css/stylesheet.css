@@ -106,6 +106,12 @@ body {
   width: auto;
 }
 
+.todo--delete {
+  width: 1.5em;
+  background-image: url(../imgs/icons/garbage.svg);
+  background-repeat: no-repeat;
+}
+
 .todo--property {
   width: 6em;
   height:1.6em;

@@ -327,8 +327,6 @@ setNewPage maybeRoute oldModel =
  let
     model = Tuple.first oldModel
 
-    oldLoginDate : LoginStatus
-    oldLoginDate = model.loginStatus
     cmd =
       -- if oldLoginDate.loginToday == False then
 --        Debug.log "first login" ( Cmd.batch [getLoginDate])
@@ -536,6 +534,7 @@ update msg model =
           ({model | loginStatus = newLoginStatus },
               Cmd.batch [setLoginInformation (loginEncoder newLoginStatus)])
         _ ->
+        -- TODO: エラーを拾うようにはなっていない
           (model, Cmd.none)
 
 -- UPDATE: Tool
@@ -665,7 +664,7 @@ viewTodo todo=
                ]
 
         ] 
-      ,  label [ onClick (DeleteTask todo), class "todo--delete" ] [ text " [X]" ]      
+      ,  label [ onClick (DeleteTask todo), class "todo--delete" ] [ ]      
       ]
 
 -- VIEW : TodoInputWindow
