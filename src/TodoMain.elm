@@ -23,7 +23,6 @@ import Task as Ts
 import UUID exposing (UUID)
 import Random
 import String exposing (fromInt)
-import String exposing (toInt)
 
 -- MAIN
 main : Program Encode.Value Model Msg
@@ -311,9 +310,11 @@ setNewModel indexModel navigationKey =
     newLoginStatus =
       case indexModel.loginStatus of
         Just t ->
-          Debug.log "status" t
+          -- Debug.log "status" t
+          t
         Nothing ->
-          Debug.log "status" initLoginStatus
+          -- Debug.log "status" initLoginStatus
+          initLoginStatus
   in
     ({ newModel | buttle = newButtleModel
                 , taskList = List.sortBy .date newTodoModel |> List.reverse
@@ -327,10 +328,11 @@ setNewPage maybeRoute oldModel =
     model = Tuple.first oldModel
 
     oldLoginDate : LoginStatus
-    oldLoginDate = Debug.log "check-timing" model.loginStatus
+    oldLoginDate = model.loginStatus
     cmd =
       -- if oldLoginDate.loginToday == False then
-        Debug.log "first login" ( Cmd.batch [getLoginDate])
+--        Debug.log "first login" ( Cmd.batch [getLoginDate])
+        Cmd.batch [getLoginDate]
       -- else
       --   Debug.log "second login" Cmd.none
   in
@@ -408,7 +410,8 @@ update msg model =
         (Tick time, _) ->
           let
             t = Tuple.first time
-            zone = Debug.log "timezone" Tuple.second time
+--            zone = Debug.log "timezone" Tuple.second time
+            zone = Tuple.second time
 
             localTime =
               TE.posixToParts zone t 
@@ -453,14 +456,16 @@ update msg model =
                 |> TE.add TE.Day 0 zone
 
 -- TODO: 日付調整を入れているので、本番の時はけすようにする
-            zone = Debug.log "timezone" Tuple.second time
+--            zone = Debug.log "timezone" Tuple.second time
+            zone = Tuple.second time
             localTime =
               TE.floor TE.Day zone t
               |> T.posixToMillis
 
             oldLoginStatus = model.loginStatus
 
-            logind = Debug.log "login" (oldLoginStatus.loginDate == localTime)
+--            logind = Debug.log "login" (oldLoginStatus.loginDate == localTime)
+            logind = oldLoginStatus.loginDate == localTime
             
             newloginDate = {oldLoginStatus | loginDate = localTime, loginToday = logind}
 
@@ -475,10 +480,10 @@ update msg model =
                 ti =
                     T.millisToPosix localTime
                 dif =
-                  Debug.log "月末判定" 
-                    (
+                  -- Debug.log "月末判定" 
+                  --   (
                     ti == TE.add TE.Day 1 zone ti
-                    )
+                    -- )
               in
               if dif then
                 T.toDay zone ti
@@ -489,12 +494,12 @@ update msg model =
             weeklyNewList : List Task
             weeklyNewList =
               List.filter (\x -> x.repeatTask == "Weekly") model.taskList
-              |> Debug.log "weeklylist" (List.filter (\x -> List.member todaysWeekDay x.repeatedDay ) )
+              |> List.filter (\x -> List.member todaysWeekDay x.repeatedDay ) 
 
 
             monthlyNewList =
               List.filter (\x -> x.repeatTask == "Monthly") model.taskList
-              |> Debug.log "monthlyList" (List.filter (\x -> List.member todaysDate x.repeatedDate) )
+              |> List.filter (\x -> List.member todaysDate x.repeatedDate)
 
             todaysList : List Task
             todaysList =
@@ -524,14 +529,14 @@ update msg model =
               Cmd.none)
         (CloseLoginWindow, _) ->
           let
-            oldLoginStatus = Debug.log "CloseLoginWindow" model.loginStatus
+            oldLoginStatus = model.loginStatus
             newLoginStatus = {oldLoginStatus | loginToday = True}
             -- newLoginStatus = {oldLoginStatus | loginToday = False}
           in
           ({model | loginStatus = newLoginStatus },
               Cmd.batch [setLoginInformation (loginEncoder newLoginStatus)])
         _ ->
-          Debug.todo "予定外の値が来ていますよ"
+          (model, Cmd.none)
 
 -- UPDATE: Tool
 

@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "start": "parcel",
+    "build": "parcel build"
+  },
   "devDependencies": {
     "@parcel/transformer-elm": "^2.0.1",
     "elm": "^0.19.1-5",
