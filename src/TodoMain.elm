@@ -147,7 +147,7 @@ initTask : Task
 initTask =
   let
     firstProject = 
-      case List.head projectTypes of
+      case List.head (List.drop 1 projectTypes) of
         Just p -> p
         Nothing -> (0, "")   
     firstTaskType = 
