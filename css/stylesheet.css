@@ -125,6 +125,7 @@ body {
 
 .todo--footer {
   display: flex;
+  user-select: none;
 }
 
 .todo--input--none {

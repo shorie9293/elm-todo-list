@@ -61,6 +61,7 @@ projectTypes =
   , (1, "メイン")
   , (2, "サブ")
   , (3, "繰り返し")
+  , (4, "アーカイブ")
   ]
 
 tasktypes : List (Int, String)
@@ -209,6 +210,7 @@ type Msg
   | AddToTask Task
   | DeleteTask Task
   | UpdateTask Task
+  | ArchiveCheckedTasks
   | Tick (T.Posix, T.Zone)
   | NewId UUID
   | ChangeChecked Task
@@ -405,6 +407,18 @@ update msg model =
           ( { model | task = task }, Cmd.batch [getNewId, getDate] )
         (DeleteTask task, _) ->
           ( {model | taskList = deleteTask model task}, Cmd.none)
+        (ArchiveCheckedTasks, _) ->
+          let
+            newTasks =
+              List.map setArchive model.taskList
+
+            setArchive task =
+              if task.checked then
+                {task | project = "アーカイブ"}
+              else
+                task
+          in
+          ( {model | taskList = newTasks}, Cmd.none )
         (Tick time, _) ->
           let
             t = Tuple.first time
@@ -634,7 +648,14 @@ viewTodoList model =
     (List.map viewTodo (List.filter (\x -> x.project == model.selectedProject) model.taskList))
 
 -- VIEW: Todo
+-- TODO: 作業中！！
 
+viewTodoHeadline : Model -> Html Msg
+viewTodoHeadline model =
+  div []
+      [ h1 [] [text ("Todo List: " ++ model.selectedProject)]
+      , button [onClick ArchiveCheckedTasks ] [text "Quest Clear!!"]
+      ]
 viewTodo : Task -> Html Msg
 viewTodo todo=
   let
@@ -808,6 +829,7 @@ viewInputWindow model =
 
 -- VIEW : FLOAT BUTTON
 
+-- TODO: 位置調整
 viewFloatButton : Model -> Html Msg
 viewFloatButton model =
   div [class "button--floating", onClick (ShowInputWindow model.inputWindowViewVisibility)]
@@ -821,7 +843,7 @@ viewContent model =
     Todo ->
       ( "Todo List"
       , div [class "todo--page"] 
-            [ h1 [] [text ("Todo List: " ++ model.selectedProject)]
+            [ viewTodoHeadline model
             , viewLoginStatus model
             , viewInputWindow model
             , lazy viewTodoList model
@@ -864,7 +886,7 @@ viewTodoFooter : Model -> Html Msg
 viewTodoFooter model =
   let
     newProjectTypes = 
-      List.take 4 projectTypes
+      List.take 5 projectTypes
     projectTab: String -> (Int, String) -> Html Msg
     projectTab c p =
         div [ class c, onClick (SelectProjectTab (Tuple.second p))] [text (Tuple.second p)]
@@ -929,6 +951,8 @@ updateWithStorage msg oldModel =
           )
         else
           ( {newModel | task = initTask }, cmds)
+      ArchiveCheckedTasks ->
+          ( newModel, Cmd.batch (List.map (\task -> setTasksStorage (taskEncoder task)) newModel.taskList) )
       AttackToEnemy ->
         ( newModel
         , Cmd.batch [ setStatusStorage (statusEncoder newModel.buttle), cmds]
@@ -940,7 +964,7 @@ updateWithStorage msg oldModel =
         ( newModel
         , Cmd.batch [ changeCheckedDB (taskEncoder task), cmds] )
       LoginInformation _ ->
-        ( newModel, Cmd.batch  (List.map (\task -> setTasksStorage (taskEncoder task)) newModel.taskList) )
+        ( newModel, Cmd.batch (List.map (\task -> setTasksStorage (taskEncoder task)) newModel.taskList) )
       _ ->
         ( newModel, cmds )
 
