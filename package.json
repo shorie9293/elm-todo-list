@@ -4,9 +4,12 @@
     "build": "parcel build"
   },
   "devDependencies": {
+    "@parcel/packager-raw-url": "^2.4.0",
     "@parcel/transformer-elm": "latest",
+    "@parcel/transformer-webmanifest": "^2.4.0",
     "elm": "^0.19.1-5",
-    "parcel": "latest"
+    "parcel": "latest",
+    "parcel-plugin-sw-precache": "^1.1.2"
   },
   "dependencies": {
     "dexie": "^3.2.0",
