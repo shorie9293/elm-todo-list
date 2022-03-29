@@ -5,7 +5,21 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="stylesheet" href="css/stylesheet.css">
     <link rel="manifest" href="/manifest.webmanifest">
-  </head>
+    <script type="module">
+      window.addEventListener('load', function () {
+          if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register(
+                new URL('sw.js', import.meta.url)
+                )
+                .then(function (registration) {
+                    console.log('serviceWorker registed.');
+                }).catch(function (error) {
+                    console.warn('serviceWorker error.', error);
+                });
+          }
+      });
+    </script>
+</head>
   <body>
     <script type="module" src="js/index.js"></script>
     <div id="main" class="hoge"></div>  
