@@ -613,7 +613,8 @@ viewLoginStatus model =
   div [ class loginStatusWindow, hidden model.loginStatus.loginToday] 
       [ div [class "todo--inputbox", hidden model.loginStatus.loginToday]
             [
-              h2 [] [ text (month ++ "月" ++ (fromInt today.day) ++ "日のタスク")]
+              h2 [] [ text (month ++ "月" ++ (fromInt today.day) ++ "日のクエスト")]
+            , h3 [] [ text "繰り返しクエストの登録漏れに注意して！！"]
             , div []
                   (List.map (\x -> div [] [text x.task ]) todaysTasks)
             , button [ onClick CloseLoginWindow]
