@@ -2,10 +2,7 @@ module StatusTests exposing (attackToEnemyTests)
 
 import TodoMain exposing (
     initTodoModel
-  , reduceEnemyHp
-  , encountNextEnemy
-  , judgeLevelUp)
-import Routes as R exposing (Route(..), routeToUrl)
+)
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)

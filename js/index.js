@@ -4,12 +4,10 @@ import { Dexie } from 'dexie';
 async function main() {
 
   // const todoData = JSON.stringify(await getTasksFromDB());
-  const statusData = await getStatusFromDB();
   const todoData = await getTasksFromDB();
   const loginData = localStorage.getItem('local-storage');
   console.log( "logindata", loginData)
   const flag = JSON.stringify({
-    "status": statusData.actor && statusData.enemy ? statusData : null, 
     "todos" : JSON.stringify(todoData) != "[]" ? todoData : null,
     "loginStatus" : JSON.parse(loginData)
     })
@@ -20,10 +18,6 @@ async function main() {
   const app = Elm.TodoMain.init({
     node: document.getElementById("main"),
     flags: flags
-  });
-  
-  app.ports.setStatusStorage.subscribe(function(state) {
-    setStatusToDB(state);
   });
 
   app.ports.setTasksStorage.subscribe(function(state) {

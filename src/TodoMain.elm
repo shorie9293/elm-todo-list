@@ -1,14 +1,8 @@
 port module TodoMain exposing ( main
                           , initTodoModel
-                          , reduceEnemyHp
-                          , encountNextEnemy
-                          , judgeLevelUp
                           , setLoginInformation)
-import Routes
-import Url exposing (Url)
 
-import Browser exposing (Document, UrlRequest)
-import Browser.Navigation as Navigation
+import Browser exposing (Document)
 import Html exposing ( .. )
 import Html.Lazy exposing (lazy)
 import Html.Attributes exposing ( .. )
@@ -26,22 +20,14 @@ import String exposing (fromInt)
 
 -- MAIN
 main : Program Encode.Value Model Msg
-main = Browser.application
+main = Browser.document
   { init = init
   , view = view
   , update = updateWithStorage
   , subscriptions = subscriptions
-  , onUrlRequest = Visit
-  , onUrlChange = Routes.match >> NewRoute
   }
 
--- TODO: test
 -- MODEL
-
-type Page
-  = Todo
-  | Buttle
-  | NotFound
 
 type alias Task =
   { id : String
@@ -71,28 +57,8 @@ tasktypes =
   , (3, "待機")
   ]
 
-type alias EnemyModel =
-  { id : Int
-  , enemyHp : Int
-  , lastEnemyHp : Int
-  }
-
-type alias ActorModel =
-  { id : Int
-  , exp : Int
-  , level : Int
-  , levelFlag : Bool
-  , point : Int
-  , attack : Int}
-
-type alias ButtleModel =
-  { enemy : EnemyModel
-  , actor : ActorModel
-  }
-
 type alias IndexModel =
-  { status : Maybe ButtleModel
-  , todos : Maybe (List Task)
+  { todos : Maybe (List Task)
   , loginStatus : Maybe LoginStatus
   }
 
@@ -102,10 +68,7 @@ type alias LoginStatus =
   }
 
 type alias Model =
-  { page : Page
-  , navigationKey : Navigation.Key
-  , buttle : ButtleModel
-  , taskList : List Task
+  { taskList : List Task
   , task : Task
   , uid : String
   , loginStatus : LoginStatus
@@ -114,30 +77,6 @@ type alias Model =
   , selectedProject : String
   }
 
-
-initEnemyModel : EnemyModel
-initEnemyModel =
-  { id = 0
-  , enemyHp = 10
-  , lastEnemyHp = 10
-  }
-
-
-initActorModel : ActorModel
-initActorModel =
-  { id = 0
-  , exp = 0
-  , level = 1
-  , levelFlag = False
-  , point = 0
-  , attack = 1
-  }
-
-initButtleModel : ButtleModel
-initButtleModel =
-  { enemy = initEnemyModel
-  , actor = initActorModel
-  }
 
 initTodoModel : List Task
 initTodoModel =
@@ -173,18 +112,15 @@ initLoginStatus =
   , loginDate = 0
   }
 
-initModel : Navigation.Key -> Model
-initModel navigationKey =
+initModel : Model
+initModel =
   let
     initProject =
       case List.head projectTypes of
         Just p -> p
         Nothing -> (0, "Not Found") 
   in
-  { page = NotFound
-  , navigationKey = navigationKey
-  , buttle = initButtleModel
-  , taskList = initTodoModel
+  { taskList = initTodoModel
   , task = initTask
   , uid = ""
   , inputWindowViewVisibility = False
@@ -194,20 +130,17 @@ initModel navigationKey =
   }
 
 
-init : Encode.Value -> Url -> Navigation.Key -> (Model, Cmd Msg)
-init flags url navigationKey =
+init : Encode.Value -> (Model, Cmd Msg)
+init flags =
   case Decode.decodeValue indexDecoder flags of
-    Ok model -> setNewModel model navigationKey 
-                |> setNewPage (Routes.match url)
-    Err _ -> setNewPage (Routes.match url) (initModel navigationKey, Cmd.none)
+  -- TODO あとでなおす
+    Ok model -> setNewModel model
+    Err _ -> (initModel, Cmd.none)
 
   
 -- UPDATE
 type Msg 
-  = AttackToEnemy
-  | NewRoute (Maybe Routes.Route)
-  | Visit UrlRequest
-  | AddToTask Task
+  = AddToTask Task
   | DeleteTask Task
   | UpdateTask Task
   | ArchiveCheckedTasks
@@ -229,77 +162,10 @@ type InputType
 type TaskRepeatType
   = Weekly String
   | Monthly String
-
-attackToEnemy : ButtleModel -> ButtleModel
-attackToEnemy model =
-  reduceEnemyHp model
-  |> encountNextEnemy
-  |> judgeLevelUp
-
-reduceEnemyHp : ButtleModel -> ButtleModel
-reduceEnemyHp model =
+setNewModel : IndexModel -> (Model, Cmd Msg)
+setNewModel indexModel =
   let
-    oldEnemyModel = model.enemy
-    oldActorModel = model.actor
-
-  in
-    { model | 
-        enemy =
-          { oldEnemyModel | enemyHp = oldEnemyModel.enemyHp - oldActorModel.attack }
-    }
-    
-encountNextEnemy : ButtleModel -> ButtleModel
-encountNextEnemy model =
-  let
-    oldEnemyModel = model.enemy
-    oldActorModel = model.actor
-    newEnemyModel = 
-      { oldEnemyModel |
-          enemyHp = oldEnemyModel.lastEnemyHp + 5
-          , lastEnemyHp = oldEnemyModel.lastEnemyHp + 5
-      }
-    newActorModel = 
-      { oldActorModel |
-        exp = oldActorModel.exp + 10
-        , levelFlag = True
-      }
-  in
-  if oldEnemyModel.enemyHp <= 0 then
-    { model |
-      enemy = newEnemyModel
-      , actor = newActorModel
-    }
-  else
-    model
-
-judgeLevelUp : ButtleModel -> ButtleModel
-judgeLevelUp model =
-  let
-    oldActorModel = model.actor
-    newActorModel = { oldActorModel | 
-                        level = oldActorModel.level + 1
-                      , attack = oldActorModel.attack + 5
-                      , levelFlag = False
-                    }
-  in
-  if oldActorModel.levelFlag && modBy 30 oldActorModel.exp == 0 then
-    { model | actor = newActorModel}
-  else
-    { model | actor = 
-      {oldActorModel | levelFlag = False }
-    }
-
-setNewModel : IndexModel -> Navigation.Key -> (Model, Cmd Msg)
-setNewModel indexModel navigationKey =
-  let
-    newModel = initModel navigationKey
-    newButtleModel : ButtleModel
-    newButtleModel =
-      case indexModel.status of
-        Just s ->
-          s
-        Nothing ->
-          newModel.buttle
+    newModel = initModel
     newTodoModel : List Task
     newTodoModel =
       case indexModel.todos of
@@ -318,14 +184,15 @@ setNewModel indexModel navigationKey =
           -- Debug.log "status" initLoginStatus
           initLoginStatus
   in
-    ({ newModel | buttle = newButtleModel
-                , taskList = List.sortBy .date newTodoModel |> List.reverse
+    ({ newModel | taskList = List.sortBy .date newTodoModel |> List.reverse
                 , loginStatus = newLoginStatus}
       , Cmd.none
     )
 
-setNewPage : Maybe Routes.Route -> (Model, Cmd Msg) -> ( Model, Cmd Msg )
-setNewPage maybeRoute oldModel =
+
+
+setNewPage : (Model, Cmd Msg) -> ( Model, Cmd Msg )
+setNewPage oldModel =
  let
     model = Tuple.first oldModel
 
@@ -336,13 +203,7 @@ setNewPage maybeRoute oldModel =
       -- else
       --   Debug.log "second login" Cmd.none
   in
-  case maybeRoute of
-    Just Routes.Todo ->
-      ( { model | page = Todo }, cmd )
-    Just Routes.Buttle ->
-      ( { model | page = Buttle }, cmd )
-    Nothing ->
-      ( { model | page = NotFound }, cmd )
+    ( model , cmd )
 
 getNewId : Cmd Msg
 getNewId =
@@ -384,13 +245,7 @@ updateTask task msg newTask
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-    case (msg, model.page) of
-        (AttackToEnemy, _) ->
-          ({model | buttle = attackToEnemy model.buttle}, Cmd.none)
-        (NewRoute maybeRoute, _) ->
-          setNewPage maybeRoute (model, Cmd.none)
-        (Visit (Browser.Internal url), _) ->
-          (model, Navigation.pushUrl model.navigationKey (Url.toString url))
+    case (msg, model) of
         (AddToTask task, _) ->
           let
             newTask = {task | id = model.uid, date = model.loginStatus.loginDate}
@@ -547,9 +402,9 @@ update msg model =
           in
           ({model | loginStatus = newLoginStatus },
               Cmd.batch [setLoginInformation (loginEncoder newLoginStatus)])
-        _ ->
-        -- TODO: エラーを拾うようにはなっていない
-          (model, Cmd.none)
+        -- _ ->
+        -- -- TODO: エラーを拾うようにはなっていない
+        --   (model, Cmd.none)
 
 -- UPDATE: Tool
 
@@ -623,25 +478,6 @@ viewLoginStatus model =
       ]
 
 -- VIEW: Buttle
-viewEnemy : EnemyModel -> Html Msg
-viewEnemy enemyModel =
-  div []
-      [ text ("Enemy HP: " ++ String.fromInt enemyModel.enemyHp) ]
-  
-
-viewActor : ActorModel -> Html Msg
-viewActor actorModel =
-  div [ class "todo-text" ]
-      [ div [] 
-            [ text ("LV: " ++ String.fromInt actorModel.level) ]    
-      , div [] 
-            [ text ("EXP: " ++ String.fromInt actorModel.exp) ]
-      , div [] 
-            [ text ("Point: " ++ String.fromInt actorModel.point) ]
-      , div [] 
-            [ text ("Attack: " ++ String.fromInt actorModel.attack) ]
-      , button [onClick AttackToEnemy] [ text "Attack" ]        
-      ]
 
 viewTodoList : Model -> Html Msg
 viewTodoList model =
@@ -840,34 +676,16 @@ viewFloatButton model =
 
 viewContent : Model -> ( String, Html Msg )
 viewContent model =
-  case model.page of
-    Todo ->
-      ( "Todo List"
-      , div [class "todo--page"] 
-            [ viewTodoHeadline model
-            , viewLoginStatus model
-            , viewInputWindow model
-            , lazy viewTodoList model
-            , lazy viewFloatButton model
-            , viewTodoFooter model
-            ]
-      )
-    Buttle ->
-      ( "Buttle Field"
-      , div [class "todo--page"]
-            [ h1 [] [text "Buttle Field"]
-            , div [] 
-                  [ viewLoginStatus model
-                  , lazy viewEnemy model.buttle.enemy
-                  , lazy viewActor model.buttle.actor 
-                  ]
-            ]
-      )
-    NotFound ->
-      ( "Not Found"
-      , div []
-            [ h1 [] [text "Page Not Found!!"] ]
-      )
+    ( "Todo List"
+    , div [class "todo--page"] 
+          [ viewTodoHeadline model
+          , viewLoginStatus model
+          , viewInputWindow model
+          , lazy viewTodoList model
+          , lazy viewFloatButton model
+          , viewTodoFooter model
+          ]
+    )
 
 
 -- VIEW : HEADER, FOOTER
@@ -875,12 +693,8 @@ viewContent model =
 viewHeader : Html Msg
 viewHeader =
   div []
-      [ div []
-            [ a [ Routes.href Routes.Todo]
-                [ text "todo |"]
-            , a [ Routes.href Routes.Buttle]
-                [ text " buttle"]
-             ]
+      [
+         text "header"
       ]
 
 viewTodoFooter : Model -> Html Msg
@@ -906,12 +720,8 @@ viewTodoFooter model =
 viewFooter : Html Msg
 viewFooter =
   div []
-      [ div []
-            [ a [ Routes.href Routes.Todo]
-                [ text "todo |"]
-            , a [ Routes.href Routes.Buttle]
-                [ text " buttle"]
-             ]
+      [
+         text "footer"
       ]
 
 -- VIEW : TOTAL
@@ -954,10 +764,6 @@ updateWithStorage msg oldModel =
           ( {newModel | task = initTask }, cmds)
       ArchiveCheckedTasks ->
           ( newModel, Cmd.batch (List.map (\task -> setTasksStorage (taskEncoder task)) newModel.taskList) )
-      AttackToEnemy ->
-        ( newModel
-        , Cmd.batch [ setStatusStorage (statusEncoder newModel.buttle), cmds]
-        )
       DeleteTask task ->
         ( newModel
         , Cmd.batch [ deleteTaskFromDb (taskEncoder task) , cmds] )
@@ -970,49 +776,6 @@ updateWithStorage msg oldModel =
         ( newModel, cmds )
 
 -- JSON ENCODE/DECODE
--- Buttle
-statusEncoder : ButtleModel -> Encode.Value
-statusEncoder buttle =
-  Encode.object
-    [ ("enemy", Encode.object 
-        [ ("id", Encode.int buttle.enemy.id)
-        , ("enemyHp", Encode.int buttle.enemy.enemyHp)
-        , ("lastEnemyHp", Encode.int buttle.enemy.lastEnemyHp)
-        ]
-      )
-    , ("actor", Encode.object 
-        [ ("id", Encode.int buttle.actor.id)
-        , ("exp", Encode.int buttle.actor.exp)
-        , ("level", Encode.int buttle.actor.level)
-        , ("levelFlag", Encode.bool buttle.actor.levelFlag)
-        , ("point", Encode.int buttle.actor.point)
-        , ("attack", Encode.int buttle.actor.attack)
-        ]
-      )
-    ]
-
-statusEnemyDecoder : Decode.Decoder EnemyModel
-statusEnemyDecoder =
-  Decode.succeed EnemyModel
-    |> DP.required "id" Decode.int
-    |> DP.required "enemyHp" Decode.int
-    |> DP.required "lastEnemyHp" Decode.int
-
-statusActorDecoder : Decode.Decoder ActorModel
-statusActorDecoder =
-  Decode.succeed ActorModel
-    |> DP.required "id" Decode.int
-    |> DP.required "exp" Decode.int
-    |> DP.required "level" Decode.int
-    |> DP.required "levelFlag" Decode.bool
-    |> DP.required "point" Decode.int
-    |> DP.required "attack" Decode.int
-
-statusDecoder : Decode.Decoder ButtleModel
-statusDecoder =
-  Decode.map2 ButtleModel
-    (Decode.field "enemy" statusEnemyDecoder)
-    (Decode.field "actor" statusActorDecoder)
 
 -- Todo
 
@@ -1063,7 +826,6 @@ loginDecoder =
 
 indexDecoder : Decode.Decoder IndexModel
 indexDecoder =
- Decode.map3 IndexModel
-   (Decode.field "status" <| Decode.nullable statusDecoder)
+ Decode.map2 IndexModel
    (Decode.field "todos" <| Decode.nullable (Decode.list taskDecoder))
    (Decode.field "loginStatus" <| Decode.nullable loginDecoder)
